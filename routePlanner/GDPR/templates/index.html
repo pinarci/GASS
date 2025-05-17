@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Route Planner</title>
+  <style>
+    #map {
+      height: 70vh;
+      width: 100%;
+      margin-top: 10px;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      max-width: 400px;
+      margin: auto;
+    }
+    input, button {
+      margin: 5px 0;
+      padding: 8px;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+  <form id="routeForm">
+    <input type="text" id="origin" placeholder="Origin" required />
+    <input type="text" id="destination" placeholder="Destination" required />
+    <input type="text" id="waypoints" placeholder="Waypoints (comma-separated)" />
+    <button type="submit">Get Route</button>
+  </form>
+
+  <div id="map"></div>
+
+  <script>
+    document.getElementById("routeForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+
+      const origin = document.getElementById("origin").value;
+      const destination = document.getElementById("destination").value;
+      const waypoints = document.getElementById("waypoints").value;
+
+      const response = await fetch(`/api/route?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&waypoints=${encodeURIComponent(waypoints)}`);
+      const data = await response.json();
+
+      if (data.polyline) {
+        initMap(data.polyline);
+      } else {
+        alert("Error: " + JSON.stringify(data));
+      }
+    });
+
+    function initMap(encodedPolyline) {
+      const map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 13,
+        center: { lat: 39.9208, lng: 32.8541 },
+      });
+
+      const decodedPath = google.maps.geometry.encoding.decodePath(encodedPolyline);
+
+      const routePath = new google.maps.Polyline({
+        path: decodedPath,
+        geodesic: true,
+        strokeColor: "#FF0000",
+        strokeOpacity: 0.9,
+        strokeWeight: 6,
+      });
+
+      routePath.setMap(map);
+
+      const bounds = new google.maps.LatLngBounds();
+      decodedPath.forEach(point => bounds.extend(point));
+      map.fitBounds(bounds);
+    }
+  </script>
+
+<script async src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=geometry&callback=initMap"></script>
+
+</body>
+</html>
