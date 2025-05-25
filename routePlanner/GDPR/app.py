@@ -3,7 +3,7 @@ import os
 import datetime
 import googlemaps
 import requests
-from dotenv import load_dotenv
+from dotenv import load_dotenv   
 
 # Load API keys
 load_dotenv()
@@ -46,7 +46,7 @@ def get_ors_directions(origin, destination, waypoints):
         data = {
             "coordinates": [],
             "instructions": False,
-            "optimize_waypoints": True
+        
         }
 
         import openrouteservice
