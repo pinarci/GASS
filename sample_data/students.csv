@@ -1,0 +1,4 @@
+student_id,full_name,class_name,parent_username,emergency_contact,pickup_address
+STU001,Zeynep Yılmaz,4-A,ayse.yilmaz,0555-111-2223,Ataşehir Mah. 1. Sok No:5
+STU002,Ahmet Demir,3-B,mehmet.demir,0555-333-4445,Çamlıca Mah. 2. Cad No:10
+STU003,Elif Kaya,5-C,fatma.kaya,0555-555-6667,Merkez Mah. 3. Sok No:15

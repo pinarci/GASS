@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bildirimler - Veli Paneli</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+    }
+
+    /* Header */
+    .header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+    }
+
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-info {
+      text-align: right;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .user-role {
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+    }
+
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    /* Main container */
+    .main-container {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Filter tabs */
+    .filter-tabs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-tab {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .filter-tab:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .filter-tab.active {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border-color: #3b82f6;
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+    }
+
+    .tab-badge {
+      background: rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.2rem 0.5rem;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .filter-tab.active .tab-badge {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    /* Notifications grid */
+    .notifications-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .notification-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      color: white;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .notification-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .notification-card.unread {
+      border-left: 4px solid #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .notification-card.success {
+      border-left: 4px solid #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .notification-card.warning {
+      border-left: 4px solid #f59e0b;
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .notification-card.urgent {
+      border-left: 4px solid #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .notification-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .notification-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .notification-icon.info {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+
+    .notification-icon.success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .notification-icon.warning {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .notification-icon.urgent {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    .notification-content {
+      flex: 1;
+    }
+
+    .notification-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .notification-subtitle {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-bottom: 1rem;
+    }
+
+    .notification-text {
+      font-size: 1rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .notification-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .notification-time {
+      font-size: 0.85rem;
+      opacity: 0.7;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .notification-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .notification-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .notification-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .notification-btn.primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border-color: #3b82f6;
+    }
+
+    .notification-btn.success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-color: #10b981;
+    }
+
+    .unread-indicator {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 12px;
+      height: 12px;
+      background: #3b82f6;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: white;
+      opacity: 0.7;
+    }
+
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .empty-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-text {
+      font-size: 1rem;
+      opacity: 0.8;
+    }
+
+    /* Stats cards */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      color: white;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .stat-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .main-container {
+        padding: 1rem;
+      }
+
+      .filter-tabs {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .notification-header {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .notification-meta {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* Animations */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.05); }
+    }
+
+    .notification-card {
+      animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">🔔</div>
+      <div class="header-title">Bildirimler</div>
+    </div>
+    <div class="header-right">
+      <div class="user-info">
+        <div class="user-name">{{ user_name or 'Ayşe Yılmaz' }}</div>
+        <div class="user-role">Veli</div>
+      </div>
+      <a href="/parent" class="nav-btn">← Ana Panel</a>
+      <a href="/logout" class="nav-btn">Çıkış</a>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="main-container">
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon">📨</div>
+        <div class="stat-value">12</div>
+        <div class="stat-label">Toplam Bildirim</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">🔵</div>
+        <div class="stat-value">3</div>
+        <div class="stat-label">Okunmamış</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-value">2</div>
+        <div class="stat-label">Bugün</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Acil</div>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="filter-tabs">
+      <div class="filter-tab active" data-filter="all">
+        <span>📋</span>
+        <span>Tümü</span>
+        <span class="tab-badge">12</span>
+      </div>
+
+      <div class="filter-tab" data-filter="unread">
+        <span>🔵</span>
+        <span>Okunmamış</span>
+        <span class="tab-badge">3</span>
+      </div>
+
+      <div class="filter-tab" data-filter="transport">
+        <span>🚌</span>
+        <span>Ulaşım</span>
+        <span class="tab-badge">8</span>
+      </div>
+
+      <div class="filter-tab" data-filter="urgent">
+        <span>🚨</span>
+        <span>Acil</span>
+        <span class="tab-badge">0</span>
+      </div>
+
+      <div class="filter-tab" data-filter="system">
+        <span>⚙️</span>
+        <span>Sistem</span>
+        <span class="tab-badge">1</span>
+      </div>
+    </div>
+
+    <!-- Notifications Grid -->
+    <div class="notifications-grid" id="notificationsGrid">
+      <!-- Unread Transport Notification -->
+      <div class="notification-card unread" data-category="transport">
+        <div class="unread-indicator"></div>
+        <div class="notification-header">
+          <div class="notification-icon info">🚌</div>
+          <div class="notification-content">
+            <div class="notification-title">Zeynep Otobüse Bindi</div>
+            <div class="notification-subtitle">Şoför: Mehmet Kaya - Araç: 34 ABC 123</div>
+          </div>
+        </div>
+        <div class="notification-text">
+          Zeynep bugün 07:45'te otobüse bindi. Okula doğru yola çıkıldı. Tahmini varış saati: 08:15
+        </div>
+        <div class="notification-meta">
+          <div class="notification-time">
+            <span>🕐</span>
+            <span>5 dakika önce</span>
+          </div>
+          <div class="notification-actions">
+            <button class="notification-btn primary">📍 Konumu Gör</button>
+            <button class="notification-btn">✓ Okundu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Success Transport Notification -->
+      <div class="notification-card success" data-category="transport">
+        <div class="notification-header">
+          <div class="notification-icon success">🏫</div>
+          <div class="notification-content">
+            <div class="notification-title">Okula Güvenle Ulaştı</div>
+            <div class="notification-subtitle">Zeynep Yılmaz - 4-A Sınıfı</div>
+          </div>
+        </div>
+        <div class="notification-text">
+          Zeynep okula güvenle ulaştı ve okul bahçesinde teslim edildi. Giriş saati: 08:15
+        </div>
+        <div class="notification-meta">
+          <div class="notification-time">
+            <span>🕐</span>
+            <span>1 saat önce</span>
+          </div>
+          <div class="notification-actions">
+            <button class="notification-btn success">✓ Teşekkür Et</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Unread System Notification -->
+      <div class="notification-card unread" data-category="system">
+        <div class="unread-indicator"></div>
+        <div class="notification-header">
+          <div class="notification-icon warning">⚙️</div>
+          <div class="notification-content">
+            <div class="notification-title">Sistem Güncellemesi</div>
+            <div class="notification-subtitle">AI Safety Systems v2.1</div>
+          </div>
+        </div>
+        <div class="notification-text">
+          Sistem güncellemesi tamamlandı. Yeni özellikler: Gelişmiş konum takibi, anlık bildirimler ve mesajlaşma sistemi.
+        </div>
+        <div class="notification-meta">
+          <div class="notification-time">
+            <span>🕐</span>
+            <span>2 saat önce</span>
+          </div>
+          <div class="notification-actions">
+            <button class="notification-btn primary">📖 Detayları Gör</button>
+            <button class="notification-btn">✓ Okundu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transport Notification -->
+      <div class="notification-card" data-category="transport">
+        <div class="notification-header">
+          <div class="notification-icon info">🚌</div>
+          <div class="notification-content">
+            <div class="notification-title">Günlük Rota Raporu</div>
+            <div class="notification-subtitle">Dün - 15 Haziran 2025</div>
+          </div>
+        </div>
+        <div class="notification-text">
+          Zeynep'in dünkü ulaşım raporu: Sabah 07:45'te bindi, 08:15'te okula ulaştı. Öğleden sonra 15:30'da alındı, 16:00'da eve ulaştı.
+        </div>
+        <div class="notification-meta">
+          <div class="notification-time">
+            <span>🕐</span>
+            <span>Dün 16:05</span>
+          </div>
+          <div class="notification-actions">
+            <button class="notification-btn">📊 Detaylı Rapor</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Warning Transport Notification -->
+      <div class="notification-card warning" data-category="transport">
+        <div class="notification-header">
+          <div class="notification-icon warning">⚠️</div>
+          <div class="notification-content">
+            <div class="notification-title">Rota Gecikmesi</div>
+            <div class="notification-subtitle">Trafik Yoğunluğu</div>
+          </div>
+        </div>
+        <div class="notification-text">
+          Trafik yoğunluğu nedeniyle rotada 10 dakika gecikme bekleniyor. Zeynep'in eve varış saati yaklaşık 16:10 olarak öngörülüyor.
+        </div>
+        <div class="notification-meta">
+          <div class="notification-time">
+            <span>🕐</span>
+            <span>Dün 15:45</span>
+          </div>
+          <div class="notification-actions">
+            <button class="notification-btn">📍 Canlı Takip</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Unread Transport Notification -->
+      <div class="notification-card unread" data-category="transport">
+        <div class="unread-indicator"></div>
+        <div class="notification-header">
+          <div class="notification-icon info">💬</div>
+          <div class="notification-content">
+            <div class="notification-title">Şoförden Mesaj</div>
+            <div class="notification-subtitle">Mehmet Kaya</div>
+          </div>
+        </div>
+        <div class="notification-text">
+          "Zeynep bugün çok iyi davrandı, teşekkür ederim. Yarın normal saatte alacağım."
+        </div>
+        <div class="notification-meta">
+          <div class="notification-time">
+            <span>🕐</span>
+            <span>3 gün önce</span>
+          </div>
+          <div class="notification-actions">
+            <button class="notification-btn primary">💬 Yanıtla</button>
+            <button class="notification-btn">✓ Okundu</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Filter functionality
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        // Remove active class from all tabs
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+
+        // Add active class to clicked tab
+        this.classList.add('active');
+
+        // Filter notifications
+        const filter = this.dataset.filter;
+        filterNotifications(filter);
+      });
+    });
+
+    function filterNotifications(filter) {
+      const notifications = document.querySelectorAll('.notification-card');
+
+      notifications.forEach(notification => {
+        if (filter === 'all') {
+          notification.style.display = 'block';
+        } else if (filter === 'unread') {
+          notification.style.display = notification.classList.contains('unread') ? 'block' : 'none';
+        } else if (filter === 'urgent') {
+          notification.style.display = notification.classList.contains('urgent') ? 'block' : 'none';
+        } else {
+          notification.style.display = notification.dataset.category === filter ? 'block' : 'none';
+        }
+      });
+    }
+
+    // Mark as read functionality
+    document.querySelectorAll('.notification-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (this.textContent.includes('Okundu')) {
+          const card = this.closest('.notification-card');
+          card.classList.remove('unread');
+          const indicator = card.querySelector('.unread-indicator');
+          if (indicator) indicator.remove();
+
+          // Update unread count
+          updateUnreadCount();
+
+          this.textContent = '✓ Okundu';
+          this.disabled = true;
+          this.style.opacity = '0.5';
+        } else if (this.textContent.includes('Konumu Gör')) {
+          alert('📍 Canlı konum açılıyor...\n\nZeynep şu anda: Atatürk Caddesi, No: 45');
+        } else if (this.textContent.includes('Teşekkür Et')) {
+          alert('💬 Şoföre teşekkür mesajı gönderildi!');
+          this.textContent = '✓ Gönderildi';
+          this.disabled = true;
+          this.style.opacity = '0.5';
+        } else if (this.textContent.includes('Yanıtla')) {
+          window.location.href = '/parent-messages';
+        } else if (this.textContent.includes('Canlı Takip')) {
+          alert('📍 Canlı takip açılıyor...\n\nAraç konumu ve rota bilgileri yükleniyor...');
+        }
+      });
+    });
+
+    function updateUnreadCount() {
+      const unreadCount = document.querySelectorAll('.notification-card.unread').length;
+
+      // Update tab badges
+      document.querySelector('[data-filter="unread"] .tab-badge').textContent = unreadCount;
+      document.querySelector('[data-filter="all"] .tab-badge').textContent =
+        document.querySelectorAll('.notification-card').length;
+
+      // Update stat card
+      document.querySelector('.stats-row .stat-card:nth-child(2) .stat-value').textContent = unreadCount;
+    }
+
+    // Simulate real-time notifications
+    function addNewNotification() {
+      const notifications = [
+        {
+          type: 'success',
+          icon: '🏠',
+          title: 'Eve Güvenle Ulaştı',
+          subtitle: 'Zeynep Yılmaz',
+          text: 'Zeynep eve güvenle ulaştı ve ailesi teslim alındı.',
+          category: 'transport'
+        },
+        {
+          type: 'unread',
+          icon: '🚌',
+          title: 'Otobüs Yola Çıktı',
+          subtitle: 'Öğleden Sonra Servisi',
+          text: 'Okul servisi öğrencileri almak için okuldan ayrıldı.',
+          category: 'transport'
+        },
+        {
+          type: 'warning',
+          icon: '⏰',
+          title: 'Gecikme Uyarısı',
+          subtitle: 'Trafik Durumu',
+          text: 'Yoğun trafik nedeniyle 5 dakika gecikme bekleniyor.',
+          category: 'transport'
+        }
+      ];
+
+      if (Math.random() > 0.98) { // 2% chance every 3 seconds
+        const randomNotification = notifications[Math.floor(Math.random() * notifications.length)];
+
+        const grid = document.getElementById('notificationsGrid');
+        const newCard = document.createElement('div');
+        newCard.className = `notification-card ${randomNotification.type}`;
+        newCard.dataset.category = randomNotification.category;
+
+        newCard.innerHTML = `
+          ${randomNotification.type === 'unread' ? '<div class="unread-indicator"></div>' : ''}
+          <div class="notification-header">
+            <div class="notification-icon ${randomNotification.type === 'warning' ? 'warning' : randomNotification.type === 'success' ? 'success' : 'info'}">${randomNotification.icon}</div>
+            <div class="notification-content">
+              <div class="notification-title">${randomNotification.title}</div>
+              <div class="notification-subtitle">${randomNotification.subtitle}</div>
+            </div>
+          </div>
+          <div class="notification-text">${randomNotification.text}</div>
+          <div class="notification-meta">
+            <div class="notification-time">
+              <span>🕐</span>
+              <span>Şimdi</span>
+            </div>
+            <div class="notification-actions">
+              <button class="notification-btn primary">📍 Konumu Gör</button>
+              <button class="notification-btn">✓ Okundu</button>
+            </div>
+          </div>
+        `;
+
+        grid.insertBefore(newCard, grid.firstChild);
+        updateUnreadCount();
+
+        // Add event listeners to new buttons
+        newCard.querySelectorAll('.notification-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            if (this.textContent.includes('Okundu')) {
+              const card = this.closest('.notification-card');
+              card.classList.remove('unread');
+              const indicator = card.querySelector('.unread-indicator');
+              if (indicator) indicator.remove();
+              updateUnreadCount();
+              this.textContent = '✓ Okundu';
+              this.disabled = true;
+              this.style.opacity = '0.5';
+            }
+          });
+        });
+
+        console.log('🔔 Yeni bildirim eklendi!');
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      updateUnreadCount();
+
+      // Start real-time simulation
+      setInterval(addNewNotification, 3000);
+    });
+  </script>
+</body>
+</html>

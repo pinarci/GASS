@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo Giriş Bilgileri - AI Safety Systems</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+      padding: 2rem;
+    }
+
+    /* Animated background particles */
+    .particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .particle {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 50%;
+      animation: float 8s ease-in-out infinite;
+    }
+
+    .particle:nth-child(1) { left: 15%; animation-delay: 0s; }
+    .particle:nth-child(2) { left: 25%; animation-delay: 2s; }
+    .particle:nth-child(3) { left: 35%; animation-delay: 4s; }
+    .particle:nth-child(4) { left: 45%; animation-delay: 1s; }
+    .particle:nth-child(5) { left: 55%; animation-delay: 3s; }
+    .particle:nth-child(6) { left: 65%; animation-delay: 5s; }
+    .particle:nth-child(7) { left: 75%; animation-delay: 2s; }
+    .particle:nth-child(8) { left: 85%; animation-delay: 4s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+    }
+
+    /* Main container */
+    .main-container {
+      position: relative;
+      z-index: 2;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 24px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      color: white;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      margin-bottom: 1.5rem;
+    }
+
+    .warning-note {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: 12px;
+      padding: 1rem;
+      color: #fbbf24;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    /* Account sections */
+    .accounts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .account-section {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      color: white;
+      transition: all 0.3s ease;
+    }
+
+    .account-section:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .section-icon {
+      font-size: 2rem;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .account-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .account-item {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .account-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.6s;
+    }
+
+    .account-item:hover::before {
+      left: 100%;
+    }
+
+    .account-item:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateX(5px);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .account-header {
+      display: flex;
+      justify-content: between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .account-username {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #ffffff;
+    }
+
+    .copy-btn {
+      background: rgba(59, 130, 246, 0.3);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      color: #60a5fa;
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .copy-btn:hover {
+      background: rgba(59, 130, 246, 0.5);
+      color: white;
+    }
+
+    .account-password {
+      font-family: 'Courier New', monospace;
+      font-weight: 600;
+      color: #a3a3a3;
+      margin-bottom: 0.5rem;
+    }
+
+    .account-info {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      font-style: italic;
+    }
+
+    /* Action buttons */
+    .action-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+
+    .action-btn {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .action-btn.primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border-color: #3b82f6;
+    }
+
+    .action-btn.secondary {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-color: #10b981;
+    }
+
+    /* Quick login section */
+    .quick-login {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      color: white;
+      text-align: center;
+      margin-top: 2rem;
+    }
+
+    .quick-login h3 {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      color: #fbbf24;
+    }
+
+    .quick-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .quick-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 1rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+
+    .quick-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.05);
+    }
+
+    .quick-btn.parent {
+      border-left: 4px solid #3b82f6;
+    }
+
+    .quick-btn.driver {
+      border-left: 4px solid #f59e0b;
+    }
+
+    .quick-btn.admin {
+      border-left: 4px solid #8b5cf6;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .accounts-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+      }
+
+      body {
+        padding: 1rem;
+      }
+
+      .header h1 {
+        font-size: 2rem;
+      }
+    }
+
+    /* Copy notification */
+    .copy-notification {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+    }
+
+    .copy-notification.show {
+      transform: translateX(0);
+    }
+  </style>
+</head>
+<body>
+  <!-- Animated background particles -->
+  <div class="particles">
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+  </div>
+
+  <!-- Copy notification -->
+  <div class="copy-notification" id="copyNotification">
+    📋 Panoya kopyalandı!
+  </div>
+
+  <!-- Main container -->
+  <div class="main-container">
+    <!-- Header -->
+    <div class="header">
+      <h1>🔐 Demo Giriş Bilgileri</h1>
+      <p>AI Safety Systems'e giriş yapmak için aşağıdaki demo hesaplarını kullanabilirsiniz.</p>
+      <div class="warning-note">
+        ⚠️ <strong>Uyarı:</strong> Bu bilgiler sadece demo amaçlıdır. Gerçek uygulamada bu sayfa bulunmayacaktır.
+      </div>
+    </div>
+
+    <!-- Account sections -->
+    <div class="accounts-grid">
+      <!-- Parent Accounts -->
+      <div class="account-section">
+        <div class="section-header">
+          <div class="section-icon">👨‍👩‍👧</div>
+          <div class="section-title">Veli Hesapları</div>
+        </div>
+        <div class="account-list">
+          <div class="account-item" onclick="copyCredentials('ayse.yilmaz', 'veli123')">
+            <div class="account-header">
+              <div class="account-username">ayse.yilmaz</div>
+              <button class="copy-btn" onclick="event.stopPropagation(); copyCredentials('ayse.yilmaz', 'veli123')">Kopyala</button>
+            </div>
+            <div class="account-password">Şifre: veli123</div>
+            <div class="account-info">Zeynep Yılmaz'ın velisi</div>
+          </div>
+
+          <div class="account-item" onclick="copyCredentials('fatma.demir', 'parent456')">
+            <div class="account-header">
+              <div class="account-username">fatma.demir</div>
+              <button class="copy-btn" onclick="event.stopPropagation(); copyCredentials('fatma.demir', 'parent456')">Kopyala</button>
+            </div>
+            <div class="account-password">Şifre: parent456</div>
+            <div class="account-info">Ahmet Demir'in velisi</div>
+          </div>
+
+          <div class="account-item" onclick="copyCredentials('elif.ozkan', 'veli789')">
+            <div class="account-header">
+              <div class="account-username">elif.ozkan</div>
+              <button class="copy-btn" onclick="event.stopPropagation(); copyCredentials('elif.ozkan', 'veli789')">Kopyala</button>
+            </div>
+            <div class="account-password">Şifre: veli789</div>
+            <div class="account-info">Can Özkan'ın velisi</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Driver Accounts -->
+      <div class="account-section">
+        <div class="section-header">
+          <div class="section-icon">🚌</div>
+          <div class="section-title">Şoför Hesapları</div>
+        </div>
+        <div class="account-list">
+          <div class="account-item" onclick="copyCredentials('mehmet.kaya', 'sofor123')">
+            <div class="account-header">
+              <div class="account-username">mehmet.kaya</div>
+              <button class="copy-btn" onclick="event.stopPropagation(); copyCredentials('mehmet.kaya', 'sofor123')">Kopyala</button>
+            </div>
+            <div class="account-password">Şifre: sofor123</div>
+            <div class="account-info">Araç: 34 ABC 123</div>
+          </div>
+
+          <div class="account-item" onclick="copyCredentials('ali.ozcan', 'driver456')">
+            <div class="account-header">
+              <div class="account-username">ali.ozcan</div>
+              <button class="copy-btn" onclick="event.stopPropagation(); copyCredentials('ali.ozcan', 'driver456')">Kopyala</button>
+            </div>
+            <div class="account-password">Şifre: driver456</div>
+            <div class="account-info">Araç: 34 DEF 456</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Accounts -->
+      <div class="account-section">
+        <div class="section-header">
+          <div class="section-icon">⚙️</div>
+          <div class="section-title">Yönetici Hesapları</div>
+        </div>
+        <div class="account-list">
+          <div class="account-item" onclick="copyCredentials('admin', 'admin123')">
+            <div class="account-header">
+              <div class="account-username">admin</div>
+              <button class="copy-btn" onclick="event.stopPropagation(); copyCredentials('admin', 'admin123')">Kopyala</button>
+            </div>
+            <div class="account-password">Şifre: admin123</div>
+            <div class="account-info">Sistem Yöneticisi</div>
+          </div>
+
+          <div class="account-item" onclick="copyCredentials('sistem.yoneticisi', 'system456')">
+            <div class="account-header">
+              <div class="account-username">sistem.yoneticisi</div>
+              <button class="copy-btn" onclick="event.stopPropagation(); copyCredentials('sistem.yoneticisi', 'system456')">Kopyala</button>
+            </div>
+            <div class="account-password">Şifre: system456</div>
+            <div class="account-info">Teknik Yönetici</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick login section -->
+    <div class="quick-login">
+      <h3>⚡ Hızlı Giriş</h3>
+      <p>Aşağıdaki butonlara tıklayarak otomatik olarak giriş yapabilirsiniz:</p>
+
+      <div class="quick-buttons">
+        <button class="quick-btn parent" onclick="quickLogin('ayse.yilmaz', 'veli123')">
+          👨‍👩‍👧 Veli Girişi<br><small>Ayşe Yılmaz</small>
+        </button>
+
+        <button class="quick-btn driver" onclick="quickLogin('mehmet.kaya', 'sofor123')">
+          🚌 Şoför Girişi<br><small>Mehmet Kaya</small>
+        </button>
+
+        <button class="quick-btn admin" onclick="quickLogin('admin', 'admin123')">
+          ⚙️ Admin Girişi<br><small>Sistem Yöneticisi</small>
+        </button>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="action-buttons">
+      <a href="/login" class="action-btn primary">
+        <span>🔑</span>
+        <span>Giriş Sayfasına Git</span>
+      </a>
+
+      <a href="/" class="action-btn secondary">
+        <span>🏠</span>
+        <span>Ana Sayfaya Dön</span>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    // Copy credentials to clipboard
+    function copyCredentials(username, password) {
+      const text = `Kullanıcı Adı: ${username}\nŞifre: ${password}`;
+
+      navigator.clipboard.writeText(text).then(() => {
+        showCopyNotification();
+      }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showCopyNotification();
+      });
+    }
+
+    // Show copy notification
+    function showCopyNotification() {
+      const notification = document.getElementById('copyNotification');
+      notification.classList.add('show');
+
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 2000);
+    }
+
+    // Quick login function
+    function quickLogin(username, password) {
+      // Create a form and submit it
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/login';
+
+      const usernameInput = document.createElement('input');
+      usernameInput.type = 'hidden';
+      usernameInput.name = 'username';
+      usernameInput.value = username;
+
+      const passwordInput = document.createElement('input');
+      passwordInput.type = 'hidden';
+      passwordInput.name = 'password';
+      passwordInput.value = password;
+
+      form.appendChild(usernameInput);
+      form.appendChild(passwordInput);
+      document.body.appendChild(form);
+
+      // Show loading state
+      const clickedBtn = event.target.closest('.quick-btn');
+      const originalText = clickedBtn.innerHTML;
+      clickedBtn.innerHTML = '⏳ Giriş yapılıyor...';
+      clickedBtn.disabled = true;
+
+      // Submit form
+      form.submit();
+    }
+
+    // Add hover effects to account items
+    document.querySelectorAll('.account-item').forEach(item => {
+      item.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateX(5px) scale(1.02)';
+      });
+
+      item.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateX(5px)';
+      });
+    });
+
+    // Add click effects to buttons
+    document.querySelectorAll('.copy-btn, .quick-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        this.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          this.style.transform = 'scale(1)';
+        }, 150);
+      });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      if (e.key === '1') {
+        quickLogin('ayse.yilmaz', 'veli123');
+      } else if (e.key === '2') {
+        quickLogin('mehmet.kaya', 'sofor123');
+      } else if (e.key === '3') {
+        quickLogin('admin', 'admin123');
+      } else if (e.key === 'Escape') {
+        window.location.href = '/';
+      }
+    });
+
+    // Show keyboard shortcuts hint
+    setTimeout(() => {
+      console.log('🎯 Klavye kısayolları:\n1 - Veli girişi\n2 - Şoför girişi\n3 - Admin girişi\nEsc - Ana sayfa');
+    }, 1000);
+  </script>
+</body>
+</html>

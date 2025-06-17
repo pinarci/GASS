@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mesajlar - Veli Paneli</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+    }
+
+    /* Header */
+    .header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+    }
+
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-info {
+      text-align: right;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .user-role {
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+    }
+
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    /* Main container */
+    .main-container {
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      height: calc(100vh - 100px);
+    }
+
+    /* Contacts sidebar */
+    .contacts-sidebar {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 1.5rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      color: white;
+      overflow-y: auto;
+    }
+
+    .contacts-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .contacts-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .contact-item {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .contact-item:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateX(5px);
+    }
+
+    .contact-item.active {
+      background: rgba(59, 130, 246, 0.3);
+      border-color: rgba(59, 130, 246, 0.5);
+    }
+
+    .contact-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .contact-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: white;
+    }
+
+    .contact-info {
+      flex: 1;
+    }
+
+    .contact-name {
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .contact-role {
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    .contact-status {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 8px;
+      background: rgba(74, 222, 128, 0.2);
+      color: #4ade80;
+    }
+
+    .unread-badge {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: #ef4444;
+      color: white;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    /* Chat area */
+    .chat-area {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .chat-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: white;
+    }
+
+    .chat-info {
+      flex: 1;
+    }
+
+    .chat-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .chat-status {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .chat-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .chat-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .chat-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Messages area */
+    .messages-area {
+      flex: 1;
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .message {
+      display: flex;
+      gap: 1rem;
+      max-width: 80%;
+    }
+
+    .message.sent {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .message.received .message-avatar {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .message.sent .message-avatar {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+
+    .message-content {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1rem;
+      position: relative;
+    }
+
+    .message.sent .message-content {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .message-text {
+      margin-bottom: 0.5rem;
+      line-height: 1.4;
+    }
+
+    .message-time {
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
+
+    .message-status {
+      font-size: 0.7rem;
+      opacity: 0.6;
+      margin-top: 0.25rem;
+    }
+
+    /* Message input */
+    .message-input-area {
+      padding: 1.5rem 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .message-input-container {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-end;
+    }
+
+    .message-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1rem;
+      color: white;
+      font-size: 0.9rem;
+      resize: none;
+      min-height: 44px;
+      max-height: 120px;
+      transition: all 0.3s ease;
+    }
+
+    .message-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .message-input:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .send-btn {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border: 1px solid #3b82f6;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .send-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Empty state */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+      opacity: 0.7;
+    }
+
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .empty-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-text {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    /* Quick messages */
+    .quick-messages {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .quick-msg {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .quick-msg:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    /* Responsive design */
+    @media (max-width: 1024px) {
+      .main-container {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+
+      .contacts-sidebar {
+        display: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .main-container {
+        padding: 1rem;
+      }
+
+      .chat-header {
+        padding: 1rem;
+      }
+
+      .messages-area {
+        padding: 1rem;
+      }
+
+      .message-input-area {
+        padding: 1rem;
+      }
+    }
+
+    /* Animations */
+    .message {
+      animation: slideInMessage 0.3s ease-out;
+    }
+
+    @keyframes slideInMessage {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Scrollbar styling */
+    .messages-area::-webkit-scrollbar,
+    .contacts-sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .messages-area::-webkit-scrollbar-track,
+    .contacts-sidebar::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    .messages-area::-webkit-scrollbar-thumb,
+    .contacts-sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">💬</div>
+      <div class="header-title">Mesajlar</div>
+    </div>
+    <div class="header-right">
+      <div class="user-info">
+        <div class="user-name">{{ user_name or 'Ayşe Yılmaz' }}</div>
+        <div class="user-role">Veli</div>
+      </div>
+      <a href="/parent" class="nav-btn">← Ana Panel</a>
+      <a href="/logout" class="nav-btn">Çıkış</a>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="main-container">
+    <!-- Contacts Sidebar -->
+    <div class="contacts-sidebar">
+      <div class="contacts-header">
+        <div class="contacts-title">🚌 Şoförler</div>
+      </div>
+
+      <div class="contact-item active" data-driver="mehmet-kaya">
+        <div class="unread-badge">2</div>
+        <div class="contact-header">
+          <div class="contact-avatar">🚌</div>
+          <div class="contact-info">
+            <div class="contact-name">Mehmet Kaya</div>
+            <div class="contact-role">Şoför - 34 ABC 123</div>
+          </div>
+        </div>
+        <div class="contact-status">🟢 Çevrimiçi</div>
+      </div>
+
+      <div class="contact-item" data-driver="ali-ozcan">
+        <div class="contact-header">
+          <div class="contact-avatar">🚐</div>
+          <div class="contact-info">
+            <div class="contact-name">Ali Özcan</div>
+            <div class="contact-role">Şoför - 34 DEF 456</div>
+          </div>
+        </div>
+        <div class="contact-status">🟡 Meşgul</div>
+      </div>
+
+      <div class="contact-item" data-driver="emergency">
+        <div class="contact-header">
+          <div class="contact-avatar">🚨</div>
+          <div class="contact-info">
+            <div class="contact-name">Acil Durum</div>
+            <div class="contact-role">Okul Yönetimi</div>
+          </div>
+        </div>
+        <div class="contact-status">🟢 7/24 Aktif</div>
+      </div>
+    </div>
+
+    <!-- Chat Area -->
+    <div class="chat-area">
+      <div class="chat-header">
+        <div class="chat-avatar">🚌</div>
+        <div class="chat-info">
+          <div class="chat-name">Mehmet Kaya</div>
+          <div class="chat-status">🟢 Çevrimiçi - Araç: 34 ABC 123</div>
+        </div>
+        <div class="chat-actions">
+          <button class="chat-btn">📍 Konum</button>
+          <button class="chat-btn">📞 Ara</button>
+        </div>
+      </div>
+
+      <div class="messages-area" id="messagesArea">
+        <div class="message received">
+          <div class="message-avatar">🚌</div>
+          <div class="message-content">
+            <div class="message-text">Merhaba! Zeynep'i evden aldık, okula doğru yola çıkıyoruz.</div>
+            <div class="message-time">Bugün 07:45</div>
+          </div>
+        </div>
+
+        <div class="message sent">
+          <div class="message-avatar">👩</div>
+          <div class="message-content">
+            <div class="message-text">Teşekkür ederim! Zeynep bugün biraz geç kalktı, özür dilerim.</div>
+            <div class="message-time">Bugün 07:46</div>
+            <div class="message-status">✓ İletildi</div>
+          </div>
+        </div>
+
+        <div class="message received">
+          <div class="message-avatar">🚌</div>
+          <div class="message-content">
+            <div class="message-text">Sorun değil! Zeynep okula güvenle ulaştı. 📍 Konum: Okul bahçesi</div>
+            <div class="message-time">Bugün 08:15</div>
+          </div>
+        </div>
+
+        <div class="message received">
+          <div class="message-avatar">🚌</div>
+          <div class="message-content">
+            <div class="message-text">Bu öğleden sonra okuldan alma saati 15:30'da. Zeynep'i bekleyeceğim.</div>
+            <div class="message-time">Bugün 08:16</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="message-input-area">
+        <div class="quick-messages">
+          <div class="quick-msg" onclick="insertQuickMessage('Teşekkür ederim!')">Teşekkür ederim!</div>
+          <div class="quick-msg" onclick="insertQuickMessage('Bugün erken alabilir misiniz?')">Erken alma</div>
+          <div class="quick-msg" onclick="insertQuickMessage('Zeynep nasıl?')">Zeynep nasıl?</div>
+          <div class="quick-msg" onclick="insertQuickMessage('Konumunuzu paylaşabilir misiniz?')">Konum</div>
+        </div>
+
+        <div class="message-input-container">
+          <textarea
+            class="message-input"
+            id="messageInput"
+            placeholder="Şoföre mesaj yazın..."
+            rows="1"
+          ></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+            <span>📤</span>
+            <span>Gönder</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Auto-resize textarea
+    const messageInput = document.getElementById('messageInput');
+
+    messageInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    // Send message on Enter (but not Shift+Enter)
+    messageInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Contact switching
+    document.querySelectorAll('.contact-item').forEach(contact => {
+      contact.addEventListener('click', function() {
+        // Remove active class from all contacts
+        document.querySelectorAll('.contact-item').forEach(c => c.classList.remove('active'));
+
+        // Add active class to clicked contact
+        this.classList.add('active');
+
+        // Remove unread badge
+        const badge = this.querySelector('.unread-badge');
+        if (badge) badge.remove();
+
+        // Update chat header
+        const driverName = this.querySelector('.contact-name').textContent;
+        const driverRole = this.querySelector('.contact-role').textContent;
+        const driverStatus = this.querySelector('.contact-status').textContent;
+
+        document.querySelector('.chat-name').textContent = driverName;
+        document.querySelector('.chat-status').textContent = `${driverStatus} - ${driverRole}`;
+
+        // Load messages for selected driver
+        loadMessages(this.dataset.driver);
+      });
+    });
+
+    // Send message function
+    function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const message = input.value.trim();
+
+      if (message === '') return;
+
+      // Add message to chat
+      addMessage(message, 'sent');
+
+      // Clear input
+      input.value = '';
+      input.style.height = 'auto';
+
+      // Simulate driver response (in real app, this would be WebSocket)
+      setTimeout(() => {
+        const responses = [
+          'Mesajınız alındı, teşekkürler!',
+          'Tamam, bilgilendirme için sağolun.',
+          'Elbette, size haber vereceğim.',
+          'Anlaşıldı, gerekli işlemi yapacağım.'
+        ];
+        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+        addMessage(randomResponse, 'received');
+      }, 1000 + Math.random() * 2000);
+    }
+
+    // Add message to chat
+    function addMessage(text, type) {
+      const messagesArea = document.getElementById('messagesArea');
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${type}`;
+
+      const avatar = type === 'sent' ? '👩' : '🚌';
+      const statusHtml = type === 'sent' ? '<div class="message-status">✓ İletildi</div>' : '';
+
+      messageDiv.innerHTML = `
+        <div class="message-avatar">${avatar}</div>
+        <div class="message-content">
+          <div class="message-text">${text}</div>
+          <div class="message-time">Bugün ${timeString}</div>
+          ${statusHtml}
+        </div>
+      `;
+
+      messagesArea.appendChild(messageDiv);
+      messagesArea.scrollTop = messagesArea.scrollHeight;
+    }
+
+    // Insert quick message
+    function insertQuickMessage(text) {
+      document.getElementById('messageInput').value = text;
+      document.getElementById('messageInput').focus();
+    }
+
+    // Load messages for different drivers
+    function loadMessages(driverId) {
+      const messagesArea = document.getElementById('messagesArea');
+      messagesArea.innerHTML = '';
+
+      const messageData = {
+        'mehmet-kaya': [
+          { text: 'Merhaba! Zeynep\'i evden aldık, okula doğru yola çıkıyoruz.', type: 'received', time: '07:45' },
+          { text: 'Teşekkür ederim! Zeynep bugün biraz geç kalktı, özür dilerim.', type: 'sent', time: '07:46' },
+          { text: 'Sorun değil! Zeynep okula güvenle ulaştı. 📍 Konum: Okul bahçesi', type: 'received', time: '08:15' }
+        ],
+        'ali-ozcan': [
+          { text: 'Merhaba, bugün rotada bir değişiklik var mı?', type: 'sent', time: '07:30' },
+          { text: 'Hayır, normal rota. Çocuğunuz hangi duraktan binecek?', type: 'received', time: '07:32' }
+        ],
+        'emergency': [
+          { text: 'Acil durum bildirimi için bu numarayı kullanabilirsiniz.', type: 'received', time: '06:00' },
+          { text: 'Anlıyorum, teşekkürler.', type: 'sent', time: '06:01' }
+        ]
+      };
+
+      const messages = messageData[driverId] || [];
+
+      messages.forEach(msg => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${msg.type}`;
+
+        const avatar = msg.type === 'sent' ? '👩' : (driverId === 'emergency' ? '🚨' : '🚌');
+        const statusHtml = msg.type === 'sent' ? '<div class="message-status">✓ İletildi</div>' : '';
+
+        messageDiv.innerHTML = `
+          <div class="message-avatar">${avatar}</div>
+          <div class="message-content">
+            <div class="message-text">${msg.text}</div>
+            <div class="message-time">Bugün ${msg.time}</div>
+            ${statusHtml}
+          </div>
+        `;
+
+        messagesArea.appendChild(messageDiv);
+      });
+
+      messagesArea.scrollTop = messagesArea.scrollHeight;
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      // Auto-scroll to bottom
+      const messagesArea = document.getElementById('messagesArea');
+      messagesArea.scrollTop = messagesArea.scrollHeight;
+
+      // Focus on message input
+      document.getElementById('messageInput').focus();
+    });
+
+    // Chat action buttons
+    document.querySelectorAll('.chat-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (this.textContent.includes('Konum')) {
+          addMessage('📍 Anlık konum: Atatürk Caddesi, No: 45 - Hız: 35 km/h', 'received');
+        } else if (this.textContent.includes('Ara')) {
+          alert('📞 Şoför aranıyor...\n\nGerçek uygulamada burada sesli arama başlatılacaktır.');
+        }
+      });
+    });
+
+    // Simulate real-time messages (for demo)
+    setInterval(() => {
+      if (Math.random() > 0.95) { // 5% chance every 3 seconds
+        const demoMessages = [
+          'Trafik yoğunluğu nedeniyle 5 dakika gecikebiliriz.',
+          'Zeynep otobüse bindi.',
+          'Okula 10 dakika kala ulaşacağız.',
+          'Güvenle eve döndük.'
+        ];
+        const randomMessage = demoMessages[Math.floor(Math.random() * demoMessages.length)];
+        addMessage(randomMessage, 'received');
+
+        // Add unread notification sound (optional)
+        console.log('🔔 Yeni mesaj geldi!');
+      }
+    }, 3000);
+  </script>
+</body>
+</html>

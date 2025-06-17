@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesajlar - General AI Safety Systems</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+        }
+
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .user-role-badge {
+            background: rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 1rem;
+        }
+
+        .user-role-badge.driver {
+            background: rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+        }
+
+        .user-role-badge.admin {
+            background: rgba(139, 92, 246, 0.3);
+            color: #a78bfa;
+        }
+
+        .connection-status {
+            background: rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .connection-status.connected {
+            background: rgba(74, 222, 128, 0.3);
+            color: #4ade80;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: currentColor;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .main-container {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            height: calc(100vh - 100px);
+        }
+
+        .contacts-sidebar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            color: white;
+            overflow-y: auto;
+        }
+
+        .contacts-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .contacts-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .contacts-count {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .refresh-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(180deg);
+        }
+
+        .contact-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .contact-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .contact-item.active {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .contact-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+            position: relative;
+        }
+
+        .contact-avatar.parent {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+
+        .contact-avatar.driver {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .contact-avatar.admin {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+
+        .contact-avatar.online::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            background: #4ade80;
+            border: 2px solid white;
+            border-radius: 50%;
+        }
+
+        .contact-info {
+            flex: 1;
+        }
+
+        .contact-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .contact-role {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .contact-detail {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            margin-top: 0.25rem;
+        }
+
+        .last-message {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 0.5rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .unread-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: #ef4444;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .chat-area {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: none;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .chat-avatar {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            color: white;
+        }
+
+        .chat-avatar.parent {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+
+        .chat-avatar.driver {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .chat-avatar.admin {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+
+        .chat-info {
+            flex: 1;
+        }
+
+        .chat-name {
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .chat-status {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .messages-area {
+            flex: 1;
+            padding: 1.5rem 2rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 300px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            opacity: 0.7;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-text {
+            font-size: 1rem;
+            opacity: 0.8;
+            max-width: 300px;
+            line-height: 1.5;
+        }
+
+        .message {
+            display: flex;
+            gap: 1rem;
+            max-width: 80%;
+            animation: slideInMessage 0.3s ease-out;
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .message.received .message-avatar.parent {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+
+        .message.received .message-avatar.driver {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .message.received .message-avatar.admin {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+
+        .message.sent .message-avatar {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .message-content {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 1rem 1.25rem;
+            position: relative;
+            max-width: 100%;
+        }
+
+        .message.sent .message-content {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .message.received .message-content {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .message-text {
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .message-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .message-status {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        @keyframes slideInMessage {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-input-area {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            display: none;
+        }
+
+        .quick-messages {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .quick-msg {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quick-msg:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .message-input-container {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+
+        .message-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            color: white;
+            font-size: 0.9rem;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            font-family: inherit;
+        }
+
+        .message-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: 1px solid #10b981;
+            color: white;
+            padding: 0.85rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .send-btn.sending {
+            background: rgba(16, 185, 129, 0.5);
+            pointer-events: none;
+        }
+
+        .loading-skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 8px;
+            height: 3rem;
+            margin: 0.5rem 0;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                height: auto;
+                padding: 1rem;
+            }
+
+            .contacts-sidebar {
+                height: 300px;
+                margin-bottom: 1rem;
+            }
+
+            .chat-area {
+                height: calc(100vh - 500px);
+                min-height: 400px;
+            }
+        }
+
+        .notification-toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            animation: slideInRight 0.5s ease-out;
+            max-width: 300px;
+            cursor: pointer;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">💬</div>
+            <div class="header-title">Mesajlar</div>
+            <div class="user-role-badge" id="userBadge">
+                👤 Kullanıcı
+            </div>
+            <div class="connection-status" id="connectionStatus">
+                <div class="status-dot"></div>
+                Bağlanıyor...
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <div class="user-name" id="userName">Kullanıcı</div>
+                <div class="user-role" id="userRole">User</div>
+            </div>
+            <a href="#" class="nav-btn" id="backBtn">← Ana Panel</a>
+            <a href="/logout" class="nav-btn">Çıkış</a>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="contacts-sidebar">
+            <div class="contacts-header">
+                <div class="contacts-title">
+                    <span id="contactsIcon">👥</span>
+                    <span id="contactsLabel">Kişiler</span>
+                    <span class="contacts-count" id="contactsCount">0</span>
+                </div>
+                <button class="refresh-btn" onclick="refreshContacts()" title="Yenile">
+                    🔄
+                </button>
+            </div>
+
+            <div id="contactsList">
+                <div class="loading-skeleton"></div>
+                <div class="loading-skeleton"></div>
+                <div class="loading-skeleton"></div>
+            </div>
+        </div>
+
+        <div class="chat-area">
+            <div class="chat-header" id="chatHeader">
+                <div class="chat-avatar" id="chatAvatar">👤</div>
+                <div class="chat-info">
+                    <div class="chat-name" id="chatName">Kişi Seçin</div>
+                    <div class="chat-status" id="chatStatus">
+                        <span id="statusText">Mesajlaşmak için bir kişi seçin</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="messages-area" id="messagesArea">
+                <div class="empty-state">
+                    <div class="empty-icon">💬</div>
+                    <div class="empty-title">Mesajlaşmaya Başlayın</div>
+                    <div class="empty-text">
+                        Bir kişi seçerek konuşmaya başlayın.
+                    </div>
+                </div>
+            </div>
+
+            <div class="message-input-area" id="messageInputArea">
+                <div class="quick-messages" id="quickMessages">
+                    <!-- Quick messages will be populated here -->
+                </div>
+
+                <div class="message-input-container">
+                    <textarea
+                        class="message-input"
+                        id="messageInput"
+                        placeholder="Mesajınızı yazın..."
+                        rows="1"
+                    ></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                        <span>📤</span>
+                        <span>Gönder</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get current user from template (will be set by Flask)
+        let currentUser = {
+            id: null,
+            role: 'parent',
+            name: 'Kullanıcı'
+        };
+
+        // Try to get user data from the server
+        async function getCurrentUser() {
+            try {
+                const response = await fetch('/api/current-user');
+                if (response.ok) {
+                    const userData = await response.json();
+                    currentUser = userData;
+                    updateUIForUser();
+                }
+            } catch (error) {
+                console.warn('Could not get current user, using defaults');
+                updateUIForUser();
+            }
+        }
+
+        function updateUIForUser() {
+            // Update header
+            document.getElementById('userName').textContent = currentUser.name;
+            document.getElementById('userRole').textContent = currentUser.role;
+
+            const badge = document.getElementById('userBadge');
+            const backBtn = document.getElementById('backBtn');
+
+            if (currentUser.role === 'parent') {
+                badge.innerHTML = '👨‍👩‍👧 Veli';
+                badge.className = 'user-role-badge parent';
+                backBtn.href = '/parent';
+                document.getElementById('contactsIcon').textContent = '🚌';
+                document.getElementById('contactsLabel').textContent = 'Şoförler';
+            } else if (currentUser.role === 'driver') {
+                badge.innerHTML = '🚌 Şoför';
+                badge.className = 'user-role-badge driver';
+                backBtn.href = '/driver';
+                document.getElementById('contactsIcon').textContent = '👨‍👩‍👧';
+                document.getElementById('contactsLabel').textContent = 'Veliler';
+            } else if (currentUser.role === 'admin') {
+                badge.innerHTML = '⚙️ Admin';
+                badge.className = 'user-role-badge admin';
+                backBtn.href = '/admin';
+                document.getElementById('contactsIcon').textContent = '👥';
+                document.getElementById('contactsLabel').textContent = 'Tüm Kullanıcılar';
+            }
+        }
+
+        // Socket.IO connection
+        let socket;
+        let isConnected = false;
+        let activeContactId = null;
+        let currentChatRoom = null;
+
+        function initializeSocket() {
+            try {
+                socket = io();
+
+                socket.on('connect', function() {
+                    isConnected = true;
+                    updateConnectionStatus('connected', 'Bağlı');
+                    loadContacts();
+                    console.log('✅ Socket connected');
+
+                    // Join user room for notifications
+                    if (currentUser.id) {
+                        socket.emit('join_room', `user_${currentUser.id}`);
+                    }
+                });
+
+                socket.on('disconnect', function() {
+                    isConnected = false;
+                    updateConnectionStatus('disconnected', 'Bağlantı Kesildi');
+                    console.log('❌ Socket disconnected');
+                });
+
+                socket.on('new_message', function(data) {
+                    console.log('📨 New message received:', data);
+
+                    if (data.sender_id == activeContactId) {
+                        addMessageToChat(data, 'received');
+                        scrollToBottom();
+                    }
+
+                    updateContactLastMessage(data.sender_id, data.message_text, data.sent_at);
+                    playNotificationSound();
+
+                    // Show notification if not in active chat
+                    if (data.sender_id != activeContactId) {
+                        showToast('Yeni Mesaj', `${data.sender_name}: ${data.message_text.substring(0, 50)}...`);
+                    }
+                });
+
+                socket.on('message_sent', function(data) {
+                    console.log('✅ Message delivery confirmed:', data);
+                    updateMessageStatus(data.message_id, 'delivered');
+                });
+
+            } catch (error) {
+                console.warn('Socket.IO not available:', error);
+                setTimeout(() => {
+                    updateConnectionStatus('connected', 'Bağlı (Offline Mode)');
+                    loadContacts();
+                }, 1000);
+            }
+        }
+
+        function updateConnectionStatus(status, text) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.className = `connection-status ${status}`;
+            statusEl.innerHTML = `
+                <div class="status-dot"></div>
+                ${text}
+            `;
+        }
+
+        // Load contacts based on user role
+        async function loadContacts() {
+            try {
+                const response = await fetch('/api/get-contacts');
+                const data = await response.json();
+                displayContacts(data.contacts || []);
+            } catch (error) {
+                console.warn('Could not load real contacts, using mock data:', error);
+                // Use mock data for demo
+                const mockContacts = createMockContacts();
+                displayContacts(mockContacts);
+            }
+        }
+
+        function createMockContacts() {
+            if (currentUser.role === 'parent') {
+                return [
+                    {
+                        id: 2,
+                        name: 'Mehmet Kaya',
+                        role: 'driver',
+                        status: 'online',
+                        vehicle: 'TR 34 ABC 123',
+                        student: 'Zeynep Yılmaz',
+                        last_message: 'Çocuğunuz güvenle bindi',
+                        last_message_time: new Date().toISOString(),
+                        unread_count: 1
+                    },
+                    {
+                        id: 3,
+                        name: 'Ali Özcan',
+                        role: 'driver',
+                        status: 'offline',
+                        vehicle: 'TR 34 DEF 456',
+                        student: 'Ahmet Demir',
+                        last_message: 'Yarın görüşmek üzere',
+                        last_message_time: new Date(Date.now() - 3600000).toISOString(),
+                        unread_count: 0
+                    }
+                ];
+            } else if (currentUser.role === 'driver') {
+                return [
+                    {
+                        id: 4,
+                        name: 'Ayşe Yılmaz',
+                        role: 'parent',
+                        status: 'online',
+                        student: 'Zeynep Yılmaz',
+                        last_message: 'Teşekkür ederim',
+                        last_message_time: new Date().toISOString(),
+                        unread_count: 0
+                    },
+                    {
+                        id: 5,
+                        name: 'Fatma Demir',
+                        role: 'parent',
+                        status: 'online',
+                        student: 'Ahmet Demir',
+                        last_message: 'Bugün erken alabilir misiniz?',
+                        last_message_time: new Date(Date.now() - 1800000).toISOString(),
+                        unread_count: 2

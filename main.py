@@ -1,0 +1,1397 @@
+import sys
+import os
+from pathlib import Path
+from datetime import datetime, timedelta
+import sqlite3
+import json
+from functools import wraps
+import threading
+import time
+
+# Project root is where this file is located
+PROJECT_ROOT = Path(__file__).resolve().parent
+sys.path.append(str(PROJECT_ROOT))
+
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask_socketio import SocketIO, emit, join_room, leave_room
+from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
+import requests
+
+# Import our enhanced modules (optional - fallback if not available)
+try:
+    from attendance.faceRecognition import load_known_faces, verify_student, get_face_recognition_stats
+    from dataManagement.attendanceLogger import log_attendance, get_today_attendance, _init_today_attendance
+except ImportError as e:
+    print(f"⚠️ Some modules not found: {e}")
+    print("Using fallback implementations...")
+
+# Flask setup with real-time capabilities
+app = Flask(__name__,
+            template_folder=str(PROJECT_ROOT / "templates"),
+            static_folder=str(PROJECT_ROOT / "static"))
+app.secret_key = 'ai-safety-systems-production-key-2024'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Initialize SocketIO for real-time features
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+# Database paths
+USERS_DB = PROJECT_ROOT / "production_users.db"
+MESSAGES_DB = PROJECT_ROOT / "messages.db"
+UPLOAD_FOLDER = PROJECT_ROOT / "static" / "uploads"
+UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
+
+
+class RealTimeLocationService:
+    """Real-time location tracking service"""
+
+    def __init__(self):
+        self.vehicle_locations = {}
+        self.location_updates = []
+        self.tracking_active = True
+
+    def start_tracking(self):
+        """Start background location tracking simulation"""
+
+        def update_locations():
+            while self.tracking_active:
+                self.simulate_vehicle_movement()
+                time.sleep(5)  # Update every 5 seconds
+
+        tracking_thread = threading.Thread(target=update_locations, daemon=True)
+        tracking_thread.start()
+
+    def simulate_vehicle_movement(self):
+        """Simulate realistic vehicle movement"""
+        # Get active vehicles from database
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT v.id, v.license_plate, v.driver_id, u.full_name
+            FROM vehicles v
+            JOIN users u ON v.driver_id = u.id
+            WHERE v.is_active = 1
+        ''')
+        vehicles = cursor.fetchall()
+        conn.close()
+
+        for vehicle in vehicles:
+            vehicle_id, plate, driver_id, driver_name = vehicle
+
+            # Get or initialize location
+            if vehicle_id not in self.vehicle_locations:
+                # Initialize with a realistic starting point (Ankara coordinates)
+                self.vehicle_locations[vehicle_id] = {
+                    'latitude': 39.9334 + (hash(str(vehicle_id)) % 100) * 0.001,
+                    'longitude': 32.8597 + (hash(str(vehicle_id)) % 100) * 0.001,
+                    'speed': 0,
+                    'heading': 0,
+                    'last_update': datetime.now().isoformat()
+                }
+
+            # Simulate movement (small increments)
+            import random
+            current = self.vehicle_locations[vehicle_id]
+
+            # Simulate realistic city driving
+            speed = random.randint(15, 45)  # km/h
+            heading_change = random.randint(-15, 15)  # degrees
+
+            # Convert speed to coordinate changes (very rough approximation)
+            lat_change = (speed * 0.00001) * random.choice([-1, 1])
+            lng_change = (speed * 0.00001) * random.choice([-1, 1])
+
+            self.vehicle_locations[vehicle_id].update({
+                'latitude': current['latitude'] + lat_change,
+                'longitude': current['longitude'] + lng_change,
+                'speed': speed,
+                'heading': (current['heading'] + heading_change) % 360,
+                'last_update': datetime.now().isoformat()
+            })
+
+            # Store in database
+            conn = sqlite3.connect(USERS_DB)
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE vehicles 
+                SET current_latitude = ?, current_longitude = ?, last_location_update = ?
+                WHERE id = ?
+            ''', (
+                self.vehicle_locations[vehicle_id]['latitude'],
+                self.vehicle_locations[vehicle_id]['longitude'],
+                datetime.now(),
+                vehicle_id
+            ))
+            conn.commit()
+            conn.close()
+
+            # Emit to connected clients
+            socketio.emit('location_update', {
+                'vehicle_id': vehicle_id,
+                'plate': plate,
+                'driver_name': driver_name,
+                **self.vehicle_locations[vehicle_id]
+            }, room='location_tracking')
+
+    def get_vehicle_location(self, vehicle_id):
+        """Get current location of specific vehicle"""
+        return self.vehicle_locations.get(vehicle_id)
+
+
+class RealTimeMessaging:
+    """Enhanced real-time messaging system"""
+
+    @staticmethod
+    def send_message(sender_id, receiver_id, message_text, message_type='text'):
+        """Send real message with real-time delivery"""
+        try:
+            conn = sqlite3.connect(USERS_DB)
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                INSERT INTO messages (sender_id, receiver_id, message_text, message_type)
+                VALUES (?, ?, ?, ?)
+            ''', (sender_id, receiver_id, message_text, message_type))
+
+            message_id = cursor.lastrowid
+
+            # Get sender and receiver info
+            cursor.execute('''
+                SELECT full_name, role FROM users WHERE id = ?
+            ''', (sender_id,))
+            sender_info = cursor.fetchone()
+
+            cursor.execute('''
+                SELECT full_name, role FROM users WHERE id = ?
+            ''', (receiver_id,))
+            receiver_info = cursor.fetchone()
+
+            conn.commit()
+
+            # Create notification for receiver
+            cursor.execute('''
+                INSERT INTO notifications (user_id, title, message, notification_type)
+                VALUES (?, ?, ?, ?)
+            ''', (receiver_id, 'Yeni Mesaj', f'{sender_info[0]} size mesaj gönderdi', 'message'))
+
+            conn.commit()
+            conn.close()
+
+            # Real-time delivery via SocketIO
+            socketio.emit('new_message', {
+                'id': message_id,
+                'sender_id': sender_id,
+                'sender_name': sender_info[0],
+                'sender_role': sender_info[1],
+                'receiver_id': receiver_id,
+                'message_text': message_text,
+                'message_type': message_type,
+                'sent_at': datetime.now().isoformat()
+            }, room=f'user_{receiver_id}')
+
+            # Also emit to sender for delivery confirmation
+            socketio.emit('message_sent', {
+                'message_id': message_id,
+                'status': 'delivered'
+            }, room=f'user_{sender_id}')
+
+            print(f"✅ Real-time message sent: {sender_info[0]} → {receiver_info[0]}")
+            return message_id
+
+        except Exception as e:
+            print(f"❌ Error sending message: {e}")
+            return None
+
+
+class SmartAttendanceSystem:
+    """AI-powered attendance tracking"""
+
+    @staticmethod
+    def log_attendance(student_id, event_type, driver_id, confidence=0.95):
+        """Log attendance with AI confidence score"""
+        try:
+            conn = sqlite3.connect(USERS_DB)
+            cursor = conn.cursor()
+
+            # Get student info
+            cursor.execute('''
+                SELECT s.full_name, s.parent_id, u.full_name as parent_name
+                FROM students s
+                JOIN users u ON s.parent_id = u.id
+                WHERE s.id = ?
+            ''', (student_id,))
+            student_info = cursor.fetchone()
+
+            if not student_info:
+                return False
+
+            student_name, parent_id, parent_name = student_info
+
+            # Log attendance
+            cursor.execute('''
+                INSERT INTO attendance_logs (student_id, event_type, verified_by, confidence_score)
+                VALUES (?, ?, ?, ?)
+            ''', (student_id, event_type, driver_id, confidence))
+
+            conn.commit()
+            conn.close()
+
+            # Real-time notification to parent
+            event_messages = {
+                'board': f'{student_name} otobüse bindi',
+                'alight': f'{student_name} otobüsten indi',
+                'present': f'{student_name} yoklamada mevcut',
+                'absent': f'{student_name} bulunamadı'
+            }
+
+            socketio.emit('attendance_update', {
+                'student_id': student_id,
+                'student_name': student_name,
+                'event_type': event_type,
+                'message': event_messages.get(event_type, 'Durum güncellendi'),
+                'confidence': confidence,
+                'timestamp': datetime.now().isoformat()
+            }, room=f'user_{parent_id}')
+
+            print(f"✅ Attendance logged: {student_name} - {event_type}")
+            return True
+
+        except Exception as e:
+            print(f"❌ Error logging attendance: {e}")
+            return False
+
+
+# Initialize services
+location_service = RealTimeLocationService()
+messaging_service = RealTimeMessaging()
+attendance_service = SmartAttendanceSystem()
+
+
+class EnhancedDatabase:
+    """Enhanced database operations with real data"""
+
+    def __init__(self):
+        self.init_production_database()
+        self.populate_sample_data()
+
+    def init_production_database(self):
+        """Initialize production database with enhanced schema"""
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+
+        # Enhanced users table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL CHECK (role IN ('parent', 'driver', 'admin')),
+                full_name TEXT NOT NULL,
+                email TEXT UNIQUE,
+                phone TEXT,
+                profile_photo TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_login TIMESTAMP,
+                is_active BOOLEAN DEFAULT 1,
+                online_status TEXT DEFAULT 'offline'
+            )
+        ''')
+
+        # Enhanced students table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS students (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id TEXT UNIQUE NOT NULL,
+                full_name TEXT NOT NULL,
+                class_name TEXT NOT NULL,
+                parent_id INTEGER,
+                assigned_driver_id INTEGER,
+                emergency_contact TEXT,
+                pickup_address TEXT,
+                dropoff_address TEXT,
+                medical_notes TEXT,
+                photo_path TEXT,
+                is_active BOOLEAN DEFAULT 1,
+                current_status TEXT DEFAULT 'at_home',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (parent_id) REFERENCES users (id),
+                FOREIGN KEY (assigned_driver_id) REFERENCES users (id)
+            )
+        ''')
+
+        # Enhanced vehicles table with real-time tracking
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS vehicles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                license_plate TEXT UNIQUE NOT NULL,
+                driver_id INTEGER,
+                capacity INTEGER NOT NULL,
+                model TEXT,
+                year INTEGER,
+                current_latitude REAL,
+                current_longitude REAL,
+                current_speed REAL DEFAULT 0,
+                current_heading REAL DEFAULT 0,
+                last_location_update TIMESTAMP,
+                is_active BOOLEAN DEFAULT 1,
+                status TEXT DEFAULT 'parked',
+                FOREIGN KEY (driver_id) REFERENCES users (id)
+            )
+        ''')
+
+        # Rest of the tables
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS attendance_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id INTEGER,
+                event_type TEXT CHECK (event_type IN ('board', 'alight', 'present', 'absent')),
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                location TEXT,
+                confidence_score REAL DEFAULT 0.95,
+                verified_by INTEGER,
+                vehicle_id INTEGER,
+                notes TEXT,
+                FOREIGN KEY (student_id) REFERENCES students (id),
+                FOREIGN KEY (verified_by) REFERENCES users (id),
+                FOREIGN KEY (vehicle_id) REFERENCES vehicles (id)
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender_id INTEGER NOT NULL,
+                receiver_id INTEGER NOT NULL,
+                message_text TEXT NOT NULL,
+                message_type TEXT DEFAULT 'text',
+                is_read BOOLEAN DEFAULT 0,
+                sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                read_at TIMESTAMP,
+                attachment_path TEXT,
+                FOREIGN KEY (sender_id) REFERENCES users (id),
+                FOREIGN KEY (receiver_id) REFERENCES users (id)
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                message TEXT NOT NULL,
+                notification_type TEXT DEFAULT 'info',
+                is_read BOOLEAN DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                action_url TEXT,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
+
+        conn.commit()
+        conn.close()
+        print("✅ Enhanced database initialized")
+
+    def populate_sample_data(self):
+        """Populate with realistic sample data"""
+        try:
+            conn = sqlite3.connect(USERS_DB)
+            cursor = conn.cursor()
+
+            # Check if data already exists
+            cursor.execute('SELECT COUNT(*) FROM users')
+            if cursor.fetchone()[0] > 1:  # More than just admin
+                conn.close()
+                return
+
+            # Create sample users
+            users_data = [
+                ('admin', generate_password_hash('admin123'), 'admin', 'Ahmet Yıldırım', 'admin@okul.edu.tr',
+                 '0312 555 0001'),
+                ('mehmet.kaya', generate_password_hash('driver123'), 'driver', 'Mehmet Kaya', 'mehmet@okul.edu.tr',
+                 '0555 123 4567'),
+                ('ali.ozcan', generate_password_hash('driver123'), 'driver', 'Ali Özcan', 'ali@okul.edu.tr',
+                 '0555 234 5678'),
+                ('ayse.yilmaz', generate_password_hash('parent123'), 'parent', 'Ayşe Yılmaz', 'ayse@email.com',
+                 '0555 345 6789'),
+                ('fatma.demir', generate_password_hash('parent123'), 'parent', 'Fatma Demir', 'fatma@email.com',
+                 '0555 456 7890'),
+                ('can.arslan', generate_password_hash('parent123'), 'parent', 'Can Arslan', 'can@email.com',
+                 '0555 567 8901'),
+            ]
+
+            for username, password_hash, role, full_name, email, phone in users_data:
+                cursor.execute('''
+                    INSERT OR IGNORE INTO users (username, password_hash, role, full_name, email, phone)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (username, password_hash, role, full_name, email, phone))
+
+            # Create vehicles
+            vehicles_data = [
+                ('34 ABC 123', 2, 25, 'Mercedes Sprinter', 2020, 39.9334, 32.8597),
+                ('34 DEF 456', 3, 30, 'Ford Transit', 2019, 39.9404, 32.8540),
+            ]
+
+            for plate, driver_id, capacity, model, year, lat, lng in vehicles_data:
+                cursor.execute('''
+                    INSERT OR IGNORE INTO vehicles 
+                    (license_plate, driver_id, capacity, model, year, current_latitude, current_longitude)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (plate, driver_id, capacity, model, year, lat, lng))
+
+            # Create students
+            students_data = [
+                ('STU001', 'Zeynep Yılmaz', '4-A', 4, 2, '0555 999 0001', 'Kızılay Mah. No:15', 'X İlkokulu'),
+                ('STU002', 'Ahmet Demir', '3-B', 5, 2, '0555 999 0002', 'Çankaya Mah. No:22', 'X İlkokulu'),
+                ('STU003', 'Elif Özkan', '2-C', 6, 3, '0555 999 0003', 'Bahçelievler Mah. No:8', 'X İlkokulu'),
+            ]
+
+            for student_id, full_name, class_name, parent_id, driver_id, emergency, pickup, dropoff in students_data:
+                cursor.execute('''
+                    INSERT OR IGNORE INTO students 
+                    (student_id, full_name, class_name, parent_id, assigned_driver_id, emergency_contact, pickup_address, dropoff_address)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (student_id, full_name, class_name, parent_id, driver_id, emergency, pickup, dropoff))
+
+            conn.commit()
+            conn.close()
+            print("✅ Sample data populated")
+
+        except Exception as e:
+            print(f"❌ Error populating data: {e}")
+
+
+# Initialize enhanced database
+db = EnhancedDatabase()
+
+
+# Authentication decorators
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Bu sayfaya erişmek için giriş yapmalısınız.', 'warning')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def role_required(required_role):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user_role' not in session or session['user_role'] != required_role:
+                flash('Bu sayfaya erişim yetkiniz yok.', 'error')
+                return redirect(url_for('login'))
+            return f(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
+
+
+# ==================== MAIN ROUTES ====================
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+
+        if not username or not password:
+            flash("Kullanıcı adı ve şifre gereklidir.", "error")
+            return render_template("login.html")
+
+        # Authenticate user
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, username, password_hash, role, full_name, email, phone
+            FROM users 
+            WHERE username = ? AND is_active = 1
+        ''', (username,))
+
+        user = cursor.fetchone()
+
+        if user and check_password_hash(user[2], password):
+            # Update last login and online status
+            cursor.execute('''
+                UPDATE users SET last_login = ?, online_status = 'online' WHERE id = ?
+            ''', (datetime.now(), user[0]))
+            conn.commit()
+
+            # Set session data
+            session['user_id'] = user[0]
+            session['username'] = user[1]
+            session['user_role'] = user[3]
+            session['full_name'] = user[4]
+            session['email'] = user[5]
+            session['phone'] = user[6]
+
+            flash(f"Hoş geldiniz, {user[4]}!", "success")
+
+            # Role-based redirection
+            if user[3] == 'parent':
+                return redirect(url_for('parent_dashboard'))
+            elif user[3] == 'driver':
+                return redirect(url_for('driver_dashboard'))
+            elif user[3] == 'admin':
+                return redirect(url_for('admin_dashboard'))
+        else:
+            flash("Geçersiz kullanıcı adı veya şifre.", "error")
+
+        conn.close()
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    if 'user_id' in session:
+        # Update online status
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+        cursor.execute('UPDATE users SET online_status = "offline" WHERE id = ?', (session['user_id'],))
+        conn.commit()
+        conn.close()
+
+    session.clear()
+    flash("Çıkış yapıldı.", "info")
+    return redirect(url_for('login'))
+
+
+# ==================== PARENT ROUTES ====================
+
+@app.route("/parent")
+@login_required
+@role_required('parent')
+def parent_dashboard():
+    """Enhanced parent dashboard with real data"""
+    conn = sqlite3.connect(USERS_DB)
+    cursor = conn.cursor()
+
+    # Get real student data with current status
+    cursor.execute('''
+        SELECT s.id, s.full_name, s.class_name, s.current_status,
+               d.full_name as driver_name, d.phone as driver_phone,
+               v.license_plate, v.current_latitude, v.current_longitude
+        FROM students s
+        LEFT JOIN users d ON s.assigned_driver_id = d.id
+        LEFT JOIN vehicles v ON d.id = v.driver_id
+        WHERE s.parent_id = ? AND s.is_active = 1
+    ''', (session['user_id'],))
+
+    students_data = cursor.fetchall()
+    students = []
+
+    for student in students_data:
+        # Get latest attendance
+        cursor.execute('''
+            SELECT event_type, timestamp FROM attendance_logs 
+            WHERE student_id = ? AND DATE(timestamp) = DATE('now')
+            ORDER BY timestamp DESC LIMIT 1
+        ''', (student[0],))
+
+        attendance = cursor.fetchone()
+        last_activity = attendance[1] if attendance else "Bugün aktivite yok"
+
+        # Determine status
+        status_map = {
+            'at_home': 'Evde',
+            'on_bus': 'Otobüste',
+            'at_school': 'Okulda',
+            'unknown': 'Bilinmiyor'
+        }
+
+        students.append({
+            'id': student[0],
+            'name': student[1],
+            'class': student[2],
+            'status': status_map.get(student[3], 'Bilinmiyor'),
+            'last_activity': last_activity,
+            'driver_name': student[4] or 'Atanmamış',
+            'driver_phone': student[5] or 'N/A',
+            'vehicle_plate': student[6] or 'N/A',
+            'location': {
+                'lat': student[7],
+                'lng': student[8]
+            } if student[7] and student[8] else None
+        })
+
+    conn.close()
+    return render_template("parent.html",
+                           user_name=session['full_name'],
+                           students=students,
+                           current_user={
+                               'id': session['user_id'],
+                               'name': session['full_name'],
+                               'role': session['user_role']
+                           })
+
+
+# ==================== DRIVER ROUTES ====================
+
+@app.route("/driver")
+@login_required
+@role_required('driver')
+def driver_dashboard():
+    """Enhanced driver dashboard with real data"""
+    conn = sqlite3.connect(USERS_DB)
+    cursor = conn.cursor()
+
+    # Get assigned students
+    cursor.execute('''
+        SELECT s.id, s.full_name, s.class_name, s.current_status, s.pickup_address,
+               p.full_name as parent_name, p.phone as parent_phone
+        FROM students s
+        LEFT JOIN users p ON s.parent_id = p.id
+        WHERE s.assigned_driver_id = ? AND s.is_active = 1
+        ORDER BY s.full_name
+    ''', (session['user_id'],))
+
+    students = []
+    for student in cursor.fetchall():
+        students.append({
+            'id': student[0],
+            'name': student[1],
+            'class': student[2],
+            'status': student[3],
+            'address': student[4],
+            'parent_name': student[5],
+            'parent_phone': student[6]
+        })
+
+    # Get vehicle info
+    cursor.execute('''
+        SELECT license_plate, capacity, model, current_latitude, current_longitude
+        FROM vehicles WHERE driver_id = ?
+    ''', (session['user_id'],))
+
+    vehicle = cursor.fetchone()
+    vehicle_info = {
+        'plate': vehicle[0] if vehicle else 'Araç Atanmamış',
+        'capacity': vehicle[1] if vehicle else 0,
+        'model': vehicle[2] if vehicle else 'N/A',
+        'location': {'lat': vehicle[3], 'lng': vehicle[4]} if vehicle and vehicle[3] else None
+    }
+
+    conn.close()
+    return render_template("driver.html",
+                           user_name=session['full_name'],
+                           vehicle=vehicle_info,
+                           students=students,
+                           current_user={
+                               'id': session['user_id'],
+                               'name': session['full_name'],
+                               'role': session['user_role']
+                           })
+
+
+# ==================== ADMIN ROUTES ====================
+
+@app.route("/admin")
+@login_required
+@role_required('admin')
+def admin_dashboard():
+    """Enhanced admin dashboard with real statistics"""
+    conn = sqlite3.connect(USERS_DB)
+    cursor = conn.cursor()
+
+    # Real statistics
+    cursor.execute('SELECT COUNT(*) FROM students WHERE is_active = 1')
+    total_students = cursor.fetchone()[0]
+
+    cursor.execute('SELECT COUNT(*) FROM users WHERE role = "parent" AND is_active = 1')
+    total_parents = cursor.fetchone()[0]
+
+    cursor.execute('SELECT COUNT(*) FROM users WHERE role = "driver" AND is_active = 1')
+    total_drivers = cursor.fetchone()[0]
+
+    cursor.execute('SELECT COUNT(*) FROM vehicles WHERE is_active = 1')
+    total_vehicles = cursor.fetchone()[0]
+
+    cursor.execute('''
+        SELECT COUNT(*) FROM attendance_logs 
+        WHERE DATE(timestamp) = DATE('now') AND event_type = 'board'
+    ''')
+    today_attendance = cursor.fetchone()[0]
+
+    # Calculate attendance rate
+    attendance_rate = (today_attendance / total_students * 100) if total_students > 0 else 0
+
+    # Get active vehicles with location
+    cursor.execute('''
+        SELECT v.id, v.license_plate, v.current_latitude, v.current_longitude, 
+               v.status, u.full_name as driver_name
+        FROM vehicles v
+        JOIN users u ON v.driver_id = u.id
+        WHERE v.is_active = 1
+    ''')
+
+    active_vehicles = []
+    for vehicle in cursor.fetchall():
+        active_vehicles.append({
+            'id': vehicle[0],
+            'plate': vehicle[1],
+            'location': {'lat': vehicle[2], 'lng': vehicle[3]} if vehicle[2] else None,
+            'status': vehicle[4],
+            'driver': vehicle[5]
+        })
+
+    # Get recent activities
+    cursor.execute('''
+        SELECT a.event_type, a.timestamp, s.full_name as student_name,
+               u.full_name as driver_name
+        FROM attendance_logs a
+        JOIN students s ON a.student_id = s.id
+        JOIN users u ON a.verified_by = u.id
+        ORDER BY a.timestamp DESC
+        LIMIT 10
+    ''')
+
+    recent_activities = []
+    for activity in cursor.fetchall():
+        recent_activities.append({
+            'type': activity[0],
+            'time': activity[1],
+            'student': activity[2],
+            'driver': activity[3]
+        })
+
+    stats = {
+        'total_students': total_students,
+        'total_parents': total_parents,
+        'total_drivers': total_drivers,
+        'total_vehicles': total_vehicles,
+        'today_attendance': today_attendance,
+        'attendance_rate': round(attendance_rate, 1),
+        'active_vehicles': active_vehicles,
+        'recent_activities': recent_activities
+    }
+
+    conn.close()
+    return render_template("admin.html",
+                           user_name=session['full_name'],
+                           stats=stats,
+                           current_user={
+                               'id': session['user_id'],
+                               'name': session['full_name'],
+                               'role': session['user_role']
+                           })
+
+
+# ==================== UNIFIED MESSAGING ROUTES ====================
+
+@app.route("/messages")
+@login_required
+def unified_messages():
+    """Unified messaging interface for all user roles"""
+    return render_template("messages.html",
+                           current_user={
+                               'id': session['user_id'],
+                               'name': session['full_name'],
+                               'role': session['user_role']
+                           })
+
+
+@app.route("/api/get-contacts")
+@login_required
+def api_get_contacts():
+    """Get contacts based on user role"""
+    try:
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+
+        contacts = []
+        user_role = session['user_role']
+        user_id = session['user_id']
+
+        if user_role == 'parent':
+            # Parents can message drivers of their children's vehicles
+            cursor.execute('''
+                SELECT DISTINCT u.id, u.full_name, u.phone, u.online_status, v.license_plate,
+                       s.full_name as student_name, u.role
+                FROM users u
+                JOIN students s ON u.id = s.assigned_driver_id
+                LEFT JOIN vehicles v ON u.id = v.driver_id
+                WHERE s.parent_id = ? AND u.is_active = 1
+            ''', (user_id,))
+
+            for row in cursor.fetchall():
+                contacts.append({
+                    'id': row[0],
+                    'name': row[1],
+                    'phone': row[2],
+                    'status': row[3] or 'offline',
+                    'vehicle': row[4],
+                    'student': row[5],
+                    'role': row[6],
+                    'unread_count': get_unread_count(user_id, row[0]),
+                    'last_message': get_last_message(user_id, row[0]),
+                    'last_message_time': get_last_message_time(user_id, row[0])
+                })
+
+        elif user_role == 'driver':
+            # Drivers can message parents of their assigned students
+            cursor.execute('''
+                SELECT DISTINCT u.id, u.full_name, u.phone, u.online_status, 
+                       s.full_name as student_name, u.role
+                FROM users u
+                JOIN students s ON u.id = s.parent_id
+                WHERE s.assigned_driver_id = ? AND u.is_active = 1
+            ''', (user_id,))
+
+            for row in cursor.fetchall():
+                contacts.append({
+                    'id': row[0],
+                    'name': row[1],
+                    'phone': row[2],
+                    'status': row[3] or 'offline',
+                    'student': row[4],
+                    'role': row[5],
+                    'unread_count': get_unread_count(user_id, row[0]),
+                    'last_message': get_last_message(user_id, row[0]),
+                    'last_message_time': get_last_message_time(user_id, row[0])
+                })
+
+        elif user_role == 'admin':
+            # Admins can message everyone except themselves
+            cursor.execute('''
+                SELECT u.id, u.full_name, u.phone, u.online_status, u.role
+                FROM users u
+                WHERE u.id != ? AND u.is_active = 1
+                ORDER BY u.role, u.full_name
+            ''', (user_id,))
+
+            for row in cursor.fetchall():
+                contacts.append({
+                    'id': row[0],
+                    'name': row[1],
+                    'phone': row[2],
+                    'status': row[3] or 'offline',
+                    'role': row[4],
+                    'unread_count': get_unread_count(user_id, row[0]),
+                    'last_message': get_last_message(user_id, row[0]),
+                    'last_message_time': get_last_message_time(user_id, row[0])
+                })
+
+        conn.close()
+        return jsonify({'contacts': contacts})
+
+    except Exception as e:
+        print(f"❌ Error getting contacts: {e}")
+        return jsonify({'contacts': []})
+
+
+def get_unread_count(user_id, contact_id):
+    """Get unread message count between two users"""
+    try:
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT COUNT(*) FROM messages 
+            WHERE sender_id = ? AND receiver_id = ? AND is_read = 0
+        ''', (contact_id, user_id))
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+    except:
+        return 0
+
+
+def get_last_message(user_id, contact_id):
+    """Get last message between two users"""
+    try:
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT message_text FROM messages 
+            WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
+            ORDER BY sent_at DESC LIMIT 1
+        ''', (user_id, contact_id, contact_id, user_id))
+        result = cursor.fetchone()
+        conn.close()
+        return result[0] if result else None
+    except:
+        return None
+
+
+def get_last_message_time(user_id, contact_id):
+    """Get last message time between two users"""
+    try:
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT sent_at FROM messages 
+            WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
+            ORDER BY sent_at DESC LIMIT 1
+        ''', (user_id, contact_id, contact_id, user_id))
+        result = cursor.fetchone()
+        conn.close()
+        return result[0] if result else None
+    except:
+        return None
+
+
+# Update the existing get_messages API to include sender role
+@app.route("/api/get-messages/<int:contact_id>")
+@login_required
+def api_get_messages(contact_id):
+    """Get real message history with sender roles"""
+    conn = sqlite3.connect(USERS_DB)
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT m.id, m.message_text, m.sent_at, m.is_read,
+               sender.full_name as sender_name, sender.id as sender_id, sender.role as sender_role
+        FROM messages m
+        JOIN users sender ON m.sender_id = sender.id
+        WHERE (m.sender_id = ? AND m.receiver_id = ?)
+           OR (m.sender_id = ? AND m.receiver_id = ?)
+        ORDER BY m.sent_at ASC
+        LIMIT 50
+    ''', (session['user_id'], contact_id, contact_id, session['user_id']))
+
+    messages = []
+    for row in cursor.fetchall():
+        messages.append({
+            'id': row[0],
+            'text': row[1],
+            'sent_at': row[2],
+            'is_read': row[3],
+            'sender_name': row[4],
+            'sender_id': row[5],
+            'sender_role': row[6],
+            'is_own': row[5] == session['user_id']
+        })
+
+    # Mark messages as read
+    cursor.execute('''
+        UPDATE messages SET is_read = 1, read_at = ?
+        WHERE sender_id = ? AND receiver_id = ? AND is_read = 0
+    ''', (datetime.now(), contact_id, session['user_id']))
+
+    conn.commit()
+    conn.close()
+    return jsonify({'messages': messages})
+
+
+# ==================== REAL-TIME API ROUTES ====================
+
+@app.route("/api/send-message", methods=["POST"])
+@login_required
+def api_send_message():
+    """Real-time message sending"""
+    data = request.get_json()
+    receiver_id = data.get('receiver_id')
+    message_text = data.get('message_text')
+
+    if not receiver_id or not message_text:
+        return jsonify({'success': False, 'error': 'Missing data'})
+
+    message_id = messaging_service.send_message(
+        session['user_id'],
+        receiver_id,
+        message_text
+    )
+
+    if message_id:
+        return jsonify({'success': True, 'message_id': message_id})
+    else:
+        return jsonify({'success': False, 'error': 'Failed to send message'})
+
+
+@app.route("/api/update-student-status", methods=["POST"])
+@login_required
+@role_required('driver')
+def api_update_student_status():
+    """Update student attendance status"""
+    data = request.get_json()
+    student_id = data.get('student_id')
+    event_type = data.get('event_type')  # 'board' or 'alight'
+
+    success = attendance_service.log_attendance(
+        student_id,
+        event_type,
+        session['user_id']
+    )
+
+    if success:
+        # Update student current status
+        status_map = {
+            'board': 'on_bus',
+            'alight': 'at_school' if datetime.now().hour < 15 else 'at_home'
+        }
+
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE students SET current_status = ? WHERE id = ?
+        ''', (status_map.get(event_type, 'unknown'), student_id))
+        conn.commit()
+        conn.close()
+
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': 'Failed to log attendance'})
+
+
+@app.route("/api/get-vehicle-location/<int:vehicle_id>")
+@login_required
+def api_get_vehicle_location(vehicle_id):
+    """Get real-time vehicle location"""
+    location = location_service.get_vehicle_location(vehicle_id)
+
+    if location:
+        return jsonify({
+            'success': True,
+            'location': location
+        })
+    else:
+        # Fallback to database
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT current_latitude, current_longitude, last_location_update
+            FROM vehicles WHERE id = ?
+        ''', (vehicle_id,))
+
+        result = cursor.fetchone()
+        conn.close()
+
+        if result and result[0] and result[1]:
+            return jsonify({
+                'success': True,
+                'location': {
+                    'latitude': result[0],
+                    'longitude': result[1],
+                    'last_update': result[2]
+                }
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Location not available'})
+
+
+# ==================== SOCKETIO EVENTS ====================
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection"""
+    if 'user_id' in session:
+        join_room(f'user_{session["user_id"]}')
+        join_room('location_tracking')
+
+        print(f"✅ User {session['full_name']} connected")
+
+        # Emit connection status to user
+        emit('connection_status', {
+            'status': 'connected',
+            'user_id': session['user_id'],
+            'timestamp': datetime.now().isoformat()
+        })
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection"""
+    if 'user_id' in session:
+        leave_room(f'user_{session["user_id"]}')
+        leave_room('location_tracking')
+        print(f"❌ User {session.get('full_name', 'Unknown')} disconnected")
+
+
+@socketio.on('join_chat')
+def handle_join_chat(data):
+    """Join a specific chat room"""
+    contact_id = data.get('contact_id')
+    if contact_id:
+        room = f'chat_{min(session["user_id"], contact_id)}_{max(session["user_id"], contact_id)}'
+        join_room(room)
+        emit('joined_chat', {'room': room, 'contact_id': contact_id})
+
+
+@socketio.on('send_message')
+def handle_send_message(data):
+    """Handle real-time message sending"""
+    receiver_id = data.get('receiver_id')
+    message_text = data.get('message_text')
+
+    if receiver_id and message_text:
+        message_id = messaging_service.send_message(
+            session['user_id'],
+            receiver_id,
+            message_text
+        )
+
+        if message_id:
+            emit('message_delivered', {
+                'message_id': message_id,
+                'status': 'delivered'
+            })
+
+
+@socketio.on('request_location')
+def handle_location_request(data):
+    """Handle location request"""
+    vehicle_id = data.get('vehicle_id')
+    if vehicle_id:
+        location = location_service.get_vehicle_location(vehicle_id)
+
+        emit('location_response', {
+            'vehicle_id': vehicle_id,
+            'location': location,
+            'timestamp': datetime.now().isoformat()
+        })
+
+
+@socketio.on('typing_start')
+def handle_typing_start(data):
+    """Handle typing start event"""
+    if 'user_id' in session:
+        contact_id = data.get('contact_id')
+        if contact_id:
+            socketio.emit('user_typing', {
+                'user_id': session['user_id'],
+                'user_name': session['full_name'],
+                'typing': True
+            }, room=f'user_{contact_id}')
+
+
+@socketio.on('typing_stop')
+def handle_typing_stop(data):
+    """Handle typing stop event"""
+    if 'user_id' in session:
+        contact_id = data.get('contact_id')
+        if contact_id:
+            socketio.emit('user_typing', {
+                'user_id': session['user_id'],
+                'user_name': session['full_name'],
+                'typing': False
+            }, room=f'user_{contact_id}')
+
+
+@socketio.on('driver_status_update')
+def handle_driver_status(data):
+    """Handle driver status updates"""
+    if session.get('user_role') == 'driver':
+        status = data.get('status')  # 'driving', 'stopped', 'loading', etc.
+
+        # Update database
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE vehicles SET status = ? WHERE driver_id = ?
+        ''', (status, session['user_id']))
+        conn.commit()
+        conn.close()
+
+        # Broadcast to parents of students
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT DISTINCT s.parent_id
+            FROM students s
+            WHERE s.assigned_driver_id = ?
+        ''', (session['user_id'],))
+
+        parent_ids = [row[0] for row in cursor.fetchall()]
+
+        for parent_id in parent_ids:
+            socketio.emit('driver_status_changed', {
+                'driver_name': session['full_name'],
+                'status': status,
+                'timestamp': datetime.now().isoformat()
+            }, room=f'user_{parent_id}')
+
+
+# ==================== EMERGENCY SYSTEM ====================
+
+@app.route("/api/emergency-alert", methods=["POST"])
+@login_required
+def api_emergency_alert():
+    """Handle emergency alerts"""
+    data = request.get_json()
+    emergency_type = data.get('type')  # 'medical', 'accident', 'behavior', 'technical'
+    message = data.get('message', '')
+    location = data.get('location', {})
+
+    # Log emergency
+    print(f"🚨 EMERGENCY ALERT: {emergency_type} from {session['full_name']}")
+
+    # Notify all admins immediately
+    conn = sqlite3.connect(USERS_DB)
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM users WHERE role = "admin" AND is_active = 1')
+    admin_ids = [row[0] for row in cursor.fetchall()]
+
+    emergency_message = f"ACİL DURUM: {session['full_name']} tarafından {emergency_type} bildirimi"
+
+    for admin_id in admin_ids:
+        # Create notification in database
+        cursor.execute('''
+            INSERT INTO notifications (user_id, title, message, notification_type)
+            VALUES (?, ?, ?, ?)
+        ''', (admin_id, "🚨 ACİL DURUM", emergency_message + f" - {message}", 'urgent'))
+
+        # Send real-time notification
+        socketio.emit('new_notification', {
+            'title': "🚨 ACİL DURUM",
+            'message': emergency_message + f" - {message}",
+            'type': 'urgent',
+            'timestamp': datetime.now().isoformat()
+        }, room=f'user_{admin_id}')
+
+    # If it's a driver emergency, notify parents of their students
+    if session.get('user_role') == 'driver':
+        cursor.execute('''
+            SELECT DISTINCT s.parent_id, p.full_name
+            FROM students s
+            JOIN users p ON s.parent_id = p.id
+            WHERE s.assigned_driver_id = ?
+        ''', (session['user_id'],))
+
+        for parent_id, parent_name in cursor.fetchall():
+            cursor.execute('''
+                INSERT INTO notifications (user_id, title, message, notification_type)
+                VALUES (?, ?, ?, ?)
+            ''', (parent_id, "Şoförden Acil Bildirim", f"Çocuğunuzun şoförü acil durum bildirdi: {message}", 'urgent'))
+
+            socketio.emit('new_notification', {
+                'title': "Şoförden Acil Bildirim",
+                'message': f"Çocuğunuzun şoförü acil durum bildirdi: {message}",
+                'type': 'urgent',
+                'timestamp': datetime.now().isoformat()
+            }, room=f'user_{parent_id}')
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True, 'message': 'Emergency alert sent'})
+
+
+# ==================== ENHANCED TEMPLATE FUNCTIONS ====================
+
+@app.context_processor
+def inject_user_data():
+    """Inject user data into all templates"""
+    return {
+        'current_user': {
+            'id': session.get('user_id'),
+            'name': session.get('full_name'),
+            'role': session.get('user_role'),
+            'email': session.get('email')
+        } if 'user_id' in session else None
+    }
+
+
+# ==================== BACKGROUND SERVICES ====================
+
+def start_background_services():
+    """Start all background services"""
+    location_service.start_tracking()
+    print("✅ Background services started")
+
+
+# ==================== MAIN APPLICATION ====================
+
+if __name__ == "__main__":
+    print("🚀 AI Safety Systems - Enhanced Real-time Server")
+    print(f"📁 Database: {USERS_DB}")
+    print("💡 Default admin: admin/admin123")
+    print("💡 Sample driver: mehmet.kaya/driver123")
+    print("💡 Sample parent: ayse.yilmaz/parent123")
+    print("=" * 60)
+
+    # Start background services
+    start_background_services()
+
+    # Run with SocketIO for real-time features
+    socketio.run(app, debug=True, host='0.0.0.0', port=5050)
+
+
+    # Add these routes to your main.py file
+
+    # ==================== ADDITIONAL API ROUTES ====================
+
+    @app.route("/api/current-user")
+    @login_required
+    def api_current_user():
+        """Get current logged-in user information"""
+        return jsonify({
+            'id': session['user_id'],
+            'name': session['full_name'],
+            'role': session['user_role'],
+            'email': session.get('email'),
+            'phone': session.get('phone')
+        })
+
+
+    # ==================== ADD SAMPLE MESSAGES FOR TESTING ====================
+
+    def create_sample_messages():
+        """Create sample messages for testing"""
+        try:
+            conn = sqlite3.connect(USERS_DB)
+            cursor = conn.cursor()
+
+            # Check if messages already exist
+            cursor.execute('SELECT COUNT(*) FROM messages')
+            if cursor.fetchone()[0] > 0:
+                conn.close()
+                return
+
+            # Create sample messages between parent (id=4) and driver (id=2)
+            sample_messages = [
+                (2, 4, 'Merhaba! Ben Mehmet, çocuğunuzun şoförüyüm.', 'text'),
+                (4, 2, 'Merhaba Mehmet Bey, memnun oldum.', 'text'),
+                (2, 4, 'Zeynep bugün otobüse bindi, güvenle okula götürüyorum.', 'text'),
+                (4, 2, 'Teşekkür ederim, haberdar ettiğiniz için.', 'text'),
+                (2, 4, 'Rica ederim. Her zaman iletişimde kalırız.', 'text'),
+            ]
+
+            for sender_id, receiver_id, message_text, message_type in sample_messages:
+                cursor.execute('''
+                    INSERT INTO messages (sender_id, receiver_id, message_text, message_type, sent_at)
+                    VALUES (?, ?, ?, ?, datetime('now', '-' || abs(random() % 60) || ' minutes'))
+                ''', (sender_id, receiver_id, message_text, message_type))
+
+            # Create messages between parent (id=5) and driver (id=2)
+            sample_messages_2 = [
+                (5, 2, 'Merhaba, Ahmet için bugün erken alım mümkün mü?', 'text'),
+                (2, 5, 'Tabi, saat kaçta alayım?', 'text'),
+                (5, 2, '14:30 gibi olur mu?', 'text'),
+                (2, 5, 'Olur, not aldım. 14:30da okulda olacağım.', 'text'),
+            ]
+
+            for sender_id, receiver_id, message_text, message_type in sample_messages_2:
+                cursor.execute('''
+                    INSERT INTO messages (sender_id, receiver_id, message_text, message_type, sent_at)
+                    VALUES (?, ?, ?, ?, datetime('now', '-' || abs(random() % 30) || ' minutes'))
+                ''', (sender_id, receiver_id, message_text, message_type))
+
+            conn.commit()
+            conn.close()
+            print("✅ Sample messages created")
+
+        except Exception as e:
+            print(f"❌ Error creating sample messages: {e}")
+
+
+    # ==================== UPDATE THE DATABASE INITIALIZATION ====================
+
+    # Add this to the EnhancedDatabase.__init__ method, after populate_sample_data():
+    # create_sample_messages()
+
+    # ==================== IMPROVED SOCKETIO EVENTS ====================
+
+    @socketio.on('join_room')
+    def handle_join_room(room_name):
+        """Handle joining a specific room"""
+        join_room(room_name)
+        print(f"User {session.get('full_name', 'Unknown')} joined room: {room_name}")
+        emit('room_joined', {'room': room_name})

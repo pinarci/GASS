@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Giriş - General AI Safety Systems</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Animated background particles */
+    .particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .particle {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 50%;
+      animation: float 8s ease-in-out infinite;
+    }
+
+    .particle:nth-child(1) { left: 15%; animation-delay: 0s; }
+    .particle:nth-child(2) { left: 25%; animation-delay: 2s; }
+    .particle:nth-child(3) { left: 35%; animation-delay: 4s; }
+    .particle:nth-child(4) { left: 45%; animation-delay: 1s; }
+    .particle:nth-child(5) { left: 55%; animation-delay: 3s; }
+    .particle:nth-child(6) { left: 65%; animation-delay: 5s; }
+    .particle:nth-child(7) { left: 75%; animation-delay: 2s; }
+    .particle:nth-child(8) { left: 85%; animation-delay: 4s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+    }
+
+    /* Main login container */
+    .login-container {
+      position: relative;
+      z-index: 2;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 24px;
+      padding: 3rem 2.5rem;
+      width: 100%;
+      max-width: 450px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      animation: slideIn 1s ease-out;
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .logo {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .login-title {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.01em;
+    }
+
+    .login-subtitle {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 1rem;
+      font-weight: 300;
+    }
+
+    /* Form styles */
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      position: relative;
+    }
+
+    .form-label {
+      display: block;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.01em;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 1rem 1.25rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      color: white;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .form-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .password-container {
+      position: relative;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.6);
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: color 0.3s ease;
+    }
+
+    .password-toggle:hover {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .login-button {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 12px;
+      color: white;
+      font-size: 1.1rem;
+      font-weight: 600;
+      padding: 1.2rem;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+
+    .login-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.6s;
+    }
+
+    .login-button:hover::before {
+      left: 100%;
+    }
+
+    .login-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+      border-color: rgba(255, 255, 255, 0.4);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.2));
+    }
+
+    .login-button:active {
+      transform: translateY(0);
+    }
+
+    /* Footer note */
+    .login-footer {
+      margin-top: 2rem;
+      text-align: center;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .footer-note {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .school-name {
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+    }
+
+    /* Back to home link */
+    .back-home {
+      position: absolute;
+      top: 2rem;
+      left: 2rem;
+      z-index: 3;
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .back-home:hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    /* Animations */
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .login-container {
+        margin: 1rem;
+        padding: 2rem 1.5rem;
+      }
+
+      .back-home {
+        top: 1rem;
+        left: 1rem;
+      }
+    }
+
+    /* Loading state */
+    .login-button.loading {
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    .login-button.loading::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      margin: auto;
+      border: 2px solid transparent;
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: spin 1s ease infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Back to home link -->
+  <a href="/" class="back-home">← Ana Sayfa</a>
+
+  <!-- Animated background particles -->
+  <div class="particles">
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+  </div>
+
+  <!-- Login container -->
+  <div class="login-container">
+    <div class="login-header">
+      <div class="logo">🔐</div>
+      <h1 class="login-title">Giriş Yap</h1>
+      <p class="login-subtitle">Güvenli sisteme erişim</p>
+    </div>
+
+    <form class="login-form" id="loginForm" method="POST" action="/login">
+      <div class="form-group">
+        <label for="username" class="form-label">Kullanıcı Adı / Okul ID</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          class="form-input"
+          placeholder="Kullanıcı adınızı girin"
+          required
+          autocomplete="username"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="password" class="form-label">Şifre</label>
+        <div class="password-container">
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="form-input"
+            placeholder="Şifrenizi girin"
+            required
+            autocomplete="current-password"
+          >
+          <button type="button" class="password-toggle" id="passwordToggle">👁️</button>
+        </div>
+      </div>
+
+      <button type="submit" class="login-button" id="loginButton">
+        Giriş Yap
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <p class="footer-note">
+        Bu sistem sadece <span class="school-name">X Okulu</span>'nun<br>
+        yetkilendirilmiş kullanıcıları tarafından kullanılabilir.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Password toggle functionality
+    const passwordToggle = document.getElementById('passwordToggle');
+    const passwordInput = document.getElementById('password');
+
+    passwordToggle.addEventListener('click', function() {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      passwordToggle.textContent = type === 'password' ? '👁️' : '🙈';
+    });
+
+    // Form submission handling
+    const loginForm = document.getElementById('loginForm');
+    const loginButton = document.getElementById('loginButton');
+
+    // Real form submission - let Flask handle the authentication
+    loginForm.addEventListener('submit', function(e) {
+      // Add loading state
+      loginButton.classList.add('loading');
+      loginButton.textContent = 'Giriş yapılıyor...';
+
+      // Let the form submit naturally to Flask backend
+      // Flask will handle authentication and redirection
+    });
+
+    // Input focus animations
+    document.querySelectorAll('.form-input').forEach(input => {
+      input.addEventListener('focus', function() {
+        this.parentElement.style.transform = 'scale(1.02)';
+      });
+
+      input.addEventListener('blur', function() {
+        this.parentElement.style.transform = 'scale(1)';
+      });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        window.location.href = '/';
+      }
+    });
+  </script>
+</body>
+</html>

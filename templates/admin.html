@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Paneli - General AI Safety Systems</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+    }
+
+    /* Header */
+    .header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+    }
+
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .system-status {
+      background: rgba(74, 222, 128, 0.3);
+      color: #4ade80;
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-left: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #4ade80;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-info {
+      text-align: right;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .user-role {
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    .logout-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+    }
+
+    .logout-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    /* Main container */
+    .main-container {
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      grid-template-rows: auto auto auto;
+      gap: 2rem;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    /* Card styles */
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      color: white;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-title-section {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .card-icon {
+      font-size: 2rem;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .card-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .card-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .card-btn.primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border-color: #3b82f6;
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 0;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .stat-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .stat-change {
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 10px;
+      display: inline-block;
+    }
+
+    .stat-change.positive {
+      background: rgba(74, 222, 128, 0.2);
+      color: #4ade80;
+    }
+
+    .stat-change.negative {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    /* Vehicle fleet map */
+    .fleet-map {
+      grid-row: 2 / 4;
+    }
+
+    .map-container {
+      width: 100%;
+      height: 400px;
+      background: linear-gradient(45deg, #1e293b 0%, #334155 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 1rem;
+      position: relative;
+    }
+
+    .vehicle-markers {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+
+    .vehicle-marker {
+      position: absolute;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      padding: 0.5rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .vehicle-marker:hover {
+      transform: scale(1.1);
+      z-index: 10;
+    }
+
+    .vehicle-marker.active {
+      background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+    }
+
+    .vehicle-marker.inactive {
+      background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    }
+
+    .map-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .map-btn {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .map-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .map-btn.active {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+
+    /* System health */
+    .system-health {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .health-item {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: between;
+      gap: 1rem;
+    }
+
+    .health-icon {
+      font-size: 1.5rem;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .health-icon.online {
+      background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+    }
+
+    .health-icon.warning {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .health-icon.offline {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    .health-info {
+      flex: 1;
+    }
+
+    .health-title {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .health-detail {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+
+    .health-status {
+      font-size: 0.8rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 10px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .health-status.online {
+      background: rgba(74, 222, 128, 0.2);
+      color: #4ade80;
+    }
+
+    .health-status.warning {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
+
+    .health-status.offline {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    /* User management */
+    .user-management {
+      grid-column: 1 / -1;
+    }
+
+    .user-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .user-tab {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+
+    .user-tab.active {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .user-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .user-card {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .user-card:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .user-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .user-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: white;
+    }
+
+    .user-avatar.parent {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+
+    .user-avatar.driver {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .user-avatar.admin {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    }
+
+    .user-info {
+      flex: 1;
+    }
+
+    .user-name {
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .user-role {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+
+    .user-details {
+      display: grid;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .user-detail {
+      display: flex;
+      justify-content: between;
+      font-size: 0.9rem;
+    }
+
+    .user-detail-label {
+      opacity: 0.8;
+    }
+
+    .user-detail-value {
+      font-weight: 500;
+    }
+
+    .user-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .user-btn {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.5rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .user-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .user-btn.primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+
+    .user-btn.danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    /* Navigation tabs */
+    .nav-tabs {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 25px;
+      padding: 0.5rem;
+      display: flex;
+      gap: 0.5rem;
+      z-index: 100;
+    }
+
+    .nav-tab {
+      padding: 0.75rem 1.5rem;
+      border-radius: 20px;
+      text-decoration: none;
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .nav-tab.active,
+    .nav-tab:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    /* Responsive design */
+    @media (max-width: 1200px) {
+      .main-container {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      }
+    }
+
+    @media (max-width: 768px) {
+      .nav-tabs {
+        bottom: 1rem;
+        left: 1rem;
+        right: 1rem;
+        transform: none;
+      }
+
+      .nav-tab {
+        flex: 1;
+        justify-content: center;
+        padding: 0.75rem 0.5rem;
+      }
+
+      .user-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header {
+        padding: 1rem;
+      }
+
+      .system-status {
+        display: none;
+      }
+    }
+
+    /* Animations */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.05); }
+    }
+
+    /* Scrollbar styling */
+    .user-grid::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .user-grid::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    .user-grid::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">⚙️</div>
+      <div class="header-title">Admin Paneli</div>
+      <div class="system-status">
+        <div class="status-dot"></div>
+        Sistem Aktif
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="user-info">
+        <div class="user-name">Ahmet Yıldırım</div>
+        <div class="user-role">Sistem Yöneticisi</div>
+      </div>
+      <a href="/login" class="logout-btn">Çıkış</a>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="main-container">
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🚌</div>
+        <div class="stat-value">12</div>
+        <div class="stat-label">Aktif Araç</div>
+        <div class="stat-change positive">+2 bu hafta</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-value">485</div>
+        <div class="stat-label">Toplam Öğrenci</div>
+        <div class="stat-change positive">+15 bu ay</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">📹</div>
+        <div class="stat-value">24</div>
+        <div class="stat-label">Aktif Kamera</div>
+        <div class="stat-change negative">-1 arızalı</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value">98.7%</div>
+        <div class="stat-label">Tanıma Doğruluğu</div>
+        <div class="stat-change positive">+0.3% gelişim</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-value">1,247</div>
+        <div class="stat-label">Günlük Tespit</div>
+        <div class="stat-change positive">Normal seviye</div>
+      </div>
+    </div>
+
+    <!-- Vehicle Fleet Map -->
+    <div class="card fleet-map">
+      <div class="card-header">
+        <div class="card-title-section">
+          <div class="card-icon">🗺️</div>
+          <div class="card-title">Araç Filosu</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-btn">📊 Rapor</button>
+          <button class="card-btn primary">+ Araç Ekle</button>
+        </div>
+      </div>
+      <div class="map-container">
+        🗺️
+        <div class="vehicle-markers">
+          <div class="vehicle-marker active" style="top: 20%; left: 30%;">🚌 #1</div>
+          <div class="vehicle-marker active" style="top: 40%; left: 60%;">🚌 #2</div>
+          <div class="vehicle-marker active" style="top: 60%; left: 20%;">🚌 #3</div>
+          <div class="vehicle-marker inactive" style="top: 30%; left: 80%;">🚌 #4</div>
+          <div class="vehicle-marker active" style="top: 70%; left: 70%;">🚌 #5</div>
+        </div>
+      </div>
+      <div class="map-controls">
+        <button class="map-btn active">Canlı Takip</button>
+        <button class="map-btn">Rotalar</button>
+        <button class="map-btn">Geçmiş</button>
+      </div>
+    </div>
+
+    <!-- System Health -->
+    <div class="card system-health">
+      <div class="card-header">
+        <div class="card-title-section">
+          <div class="card-icon">💚</div>
+          <div class="card-title">Sistem Sağlığı</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-btn">🔄 Yenile</button>
+        </div>
+      </div>
+
+      <div class="health-item">
+        <div class="health-icon online">📹</div>
+        <div class="health-info">
+          <div class="health-title">Kamera Sistemi</div>
+          <div class="health-detail">23/24 kamera çevrimiçi</div>
+        </div>
+        <div class="health-status online">Çevrimiçi</div>
+      </div>
+
+      <div class="health-item">
+        <div class="health-icon online">🧠</div>
+        <div class="health-info">
+          <div class="health-title">AI Yüz Tanıma</div>
+          <div class="health-detail">98.7% doğruluk oranı</div>
+        </div>
+        <div class="health-status online">Optimal</div>
+      </div>
+
+      <div class="health-item">
+        <div class="health-icon warning">📡</div>
+        <div class="health-info">
+          <div class="health-title">Ağ Bağlantısı</div>
+          <div class="health-detail">Zayıf sinyal - Araç #4</div>
+        </div>
+        <div class="health-status warning">Uyarı</div>
+      </div>
+
+      <div class="health-item">
+        <div class="health-icon online">💾</div>
+        <div class="health-info">
+          <div class="health-title">Veri Depolama</div>
+          <div class="health-detail">2.4TB / 5TB kullanımda</div>
+        </div>
+        <div class="health-status online">Normal</div>
+      </div>
+
+      <div class="health-item">
+        <div class="health-icon offline">🔋</div>
+        <div class="health-info">
+          <div class="health-title">Güç Sistemi</div>
+          <div class="health-detail">Araç #4 düşük batarya</div>
+        </div>
+        <div class="health-status offline">Dikkat</div>
+      </div>
+    </div>
+
+    <!-- User Management -->
+    <div class="card user-management">
+      <div class="card-header">
+        <div class="card-title-section">
+          <div class="card-icon">👤</div>
+          <div class="card-title">Kullanıcı Yönetimi</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-btn">📊 İstatistik</button>
+          <button class="card-btn primary">+ Kullanıcı Ekle</button>
+        </div>
+      </div>
+
+      <div class="user-tabs">
+        <div class="user-tab active" data-role="all">Tümü (87)</div>
+        <div class="user-tab" data-role="parent">Veliler (45)</div>
+        <div class="user-tab" data-role="driver">Şoförler (12)</div>
+        <div class="user-tab" data-role="admin">Adminler (3)</div>
+      </div>
+
+      <div class="user-grid" id="userGrid">
+        <!-- Parent Users -->
+        <div class="user-card" data-role="parent">
+          <div class="user-header">
+            <div class="user-avatar parent">👨</div>
+            <div class="user-info">
+              <div class="user-name">Ayşe Yılmaz</div>
+              <div class="user-role">Veli</div>
+            </div>
+          </div>
+          <div class="user-details">
+            <div class="user-detail">
+              <span class="user-detail-label">Çocuk:</span>
+              <span class="user-detail-value">Zeynep Yılmaz</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">Telefon:</span>
+              <span class="user-detail-value">0555 123 4567</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">Son Giriş:</span>
+              <span class="user-detail-value">2 saat önce</span>
+            </div>
+          </div>
+          <div class="user-actions">
+            <button class="user-btn">✏️ Düzenle</button>
+            <button class="user-btn">📱 Mesaj</button>
+            <button class="user-btn danger">🗑️ Sil</button>
+          </div>
+        </div>
+
+        <!-- Driver Users -->
+        <div class="user-card" data-role="driver">
+          <div class="user-header">
+            <div class="user-avatar driver">🚌</div>
+            <div class="user-info">
+              <div class="user-name">Mehmet Kaya</div>
+              <div class="user-role">Şoför</div>
+            </div>
+          </div>
+          <div class="user-details">
+            <div class="user-detail">
+              <span class="user-detail-label">Araç:</span>
+              <span class="user-detail-value">34 ABC 123</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">Rota:</span>
+              <span class="user-detail-value">Merkez-Okul</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">Durum:</span>
+              <span class="user-detail-value">Aktif</span>
+            </div>
+          </div>
+          <div class="user-actions">
+            <button class="user-btn">✏️ Düzenle</button>
+            <button class="user-btn">📍 Konum</button>
+            <button class="user-btn danger">🗑️ Sil</button>
+          </div>
+        </div>
+
+        <!-- Admin Users -->
+        <div class="user-card" data-role="admin">
+          <div class="user-header">
+            <div class="user-avatar admin">⚙️</div>
+            <div class="user-info">
+              <div class="user-name">Ahmet Yıldırım</div>
+              <div class="user-role">Sistem Yöneticisi</div>
+            </div>
+          </div>
+          <div class="user-details">
+            <div class="user-detail">
+              <span class="user-detail-label">Yetki:</span>
+              <span class="user-detail-value">Tam Erişim</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">Email:</span>
+              <span class="user-detail-value">admin@okul.edu.tr</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">Son Giriş:</span>
+              <span class="user-detail-value">Şimdi</span>
+            </div>
+          </div>
+          <div class="user-actions">
+            <button class="user-btn">✏️ Düzenle</button>
+            <button class="user-btn">🔑 Yetkiler</button>
+            <button class="user-btn danger">🗑️ Sil</button>
+          </div>
+        </div>
+
+        <!-- More Parent Users -->
+        <div class="user-card" data-role="parent">
+          <div class="user-header">
+            <div class="user-avatar parent">👩</div>
+            <div class="user-info">
+              <div class="user-name">Fatma Demir</div>
+              <div class="user-role">Veli</div>
+            </div>
+          </div>
+          <div class="user-details">
+            <div class="user-detail">
+              <span class="user-detail-label">Çocuk:</span>
+              <span class="user-detail-value">Ahmet Demir</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">Telefon:</span>
+              <span class="user-detail-value">0555 987 6543</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">Son Giriş:</span>
+              <span class="user-detail-value">1 gün önce</span>
+            </div>
+          </div>
+          <div class="user-actions">
+            <button class="user-btn">✏️ Düzenle</button>
+            <button class="user-btn">📱 Mesaj</button>
+            <button class="user-btn danger">🗑️ Sil</button>
+          </div>
+        </div>
+
+        <!-- More Driver Users -->
+        <div class="user-card" data-role="driver">
+          <div class="user-header">
+            <div class="user-avatar driver">🚌</div>
+            <div class="user-info">
+              <div class="user-name">Ali Özcan</div>
+              <div class="user-role">Şoför</div>
+            </div>
+          </div>
+          <div class="user-details">
+            <div class="user-detail">
+              <span class="user-detail-label">Araç:</span>
+              <span class="user-detail-value">34 DEF 456</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">Rota:</span>
+              <span class="user-detail-value">Çevre-Okul</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">Durum:</span>
+              <span class="user-detail-value">Molada</span>
+            </div>
+          </div>
+          <div class="user-actions">
+            <button class="user-btn">✏️ Düzenle</button>
+            <button class="user-btn">📍 Konum</button>
+            <button class="user-btn danger">🗑️ Sil</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="nav-tabs">
+    <a href="#" class="nav-tab active">
+      <span>📊</span>
+      <span>Dashboard</span>
+    </a>
+    <a href="/admin-users" class="nav-tab">
+      <span>👥</span>
+      <span>Kullanıcılar</span>
+    </a>
+    <a href="/admin-vehicles" class="nav-tab">
+      <span>🚌</span>
+      <span>Araçlar</span>
+    </a>
+    <a href="/admin-reports" class="nav-tab">
+      <span>📋</span>
+      <span>Raporlar</span>
+    </a>
+    <a href="/admin-settings" class="nav-tab">
+      <span>⚙️</span>
+      <span>Ayarlar</span>
+    </a>
+  </div>
+
+  <script>
+    // User tab filtering
+    document.querySelectorAll('.user-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        // Update active tab
+        document.querySelectorAll('.user-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+
+        const role = this.dataset.role;
+        const userCards = document.querySelectorAll('.user-card');
+
+        userCards.forEach(card => {
+          if (role === 'all' || card.dataset.role === role) {
+            card.style.display = 'block';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    });
+
+    // Map controls
+    document.querySelectorAll('.map-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        // Simulate different map views
+        const markers = document.querySelectorAll('.vehicle-marker');
+        if (this.textContent === 'Rotalar') {
+          markers.forEach(marker => {
+            marker.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)';
+          });
+        } else if (this.textContent === 'Geçmiş') {
+          markers.forEach(marker => {
+            marker.style.opacity = '0.6';
+          });
+        } else {
+          markers.forEach(marker => {
+            marker.style.background = marker.classList.contains('active')
+              ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)'
+              : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)';
+            marker.style.opacity = '1';
+          });
+        }
+      });
+    });
+
+    // Vehicle marker interactions
+    document.querySelectorAll('.vehicle-marker').forEach(marker => {
+      marker.addEventListener('click', function() {
+        const vehicleId = this.textContent;
+        showVehicleDetails(vehicleId);
+      });
+    });
+
+    function showVehicleDetails(vehicleId) {
+      // In a real app, this would show a modal with vehicle details
+      alert(`${vehicleId} detayları:\n- Şoför: Mehmet Kaya\n- Öğrenci: 15/20\n- Konum: Merkez\n- Durum: Aktif`);
+    }
+
+    // User actions
+    document.querySelectorAll('.user-btn').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+
+        const action = this.textContent;
+        const userName = this.closest('.user-card').querySelector('.user-name').textContent;
+
+        if (action.includes('Düzenle')) {
+          // In real app, this would open edit modal
+          console.log(`Editing user: ${userName}`);
+        } else if (action.includes('Sil')) {
+          if (confirm(`${userName} kullanıcısını silmek istediğinizden emin misiniz?`)) {
+            this.closest('.user-card').remove();
+          }
+        } else if (action.includes('Mesaj')) {
+          // In real app, this would open messaging interface
+          console.log(`Messaging user: ${userName}`);
+        }
+      });
+    });
+
+    // Real-time updates simulation
+    function updateStats() {
+      const statValues = document.querySelectorAll('.stat-value');
+      statValues.forEach(stat => {
+        if (Math.random() > 0.8) { // 20% chance of update
+          const currentValue = parseInt(stat.textContent) || 0;
+          const change = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+          if (currentValue + change > 0) {
+            stat.textContent = currentValue + change;
+          }
+        }
+      });
+    }
+
+    // Health status simulation
+    function updateHealthStatus() {
+      const healthItems = document.querySelectorAll('.health-item');
+      healthItems.forEach(item => {
+        if (Math.random() > 0.9) { // 10% chance of status change
+          const statusElement = item.querySelector('.health-status');
+          const iconElement = item.querySelector('.health-icon');
+
+          const statuses = ['online', 'warning', 'offline'];
+          const currentStatus = Array.from(statusElement.classList).find(cls => statuses.includes(cls));
+          const newStatus = statuses[Math.floor(Math.random() * statuses.length)];
+
+          if (currentStatus !== newStatus) {
+            statusElement.classList.remove(currentStatus);
+            statusElement.classList.add(newStatus);
+            iconElement.classList.remove(currentStatus);
+            iconElement.classList.add(newStatus);
+
+            const statusTexts = {
+              online: 'Çevrimiçi',
+              warning: 'Uyarı',
+              offline: 'Çevrimdışı'
+            };
+            statusElement.textContent = statusTexts[newStatus];
+          }
+        }
+      });
+    }
+
+    // Vehicle marker animation
+    function animateVehicleMarkers() {
+      const markers = document.querySelectorAll('.vehicle-marker.active');
+      markers.forEach(marker => {
+        const currentTop = parseInt(marker.style.top);
+        const currentLeft = parseInt(marker.style.left);
+
+        // Small random movement to simulate real movement
+        const newTop = Math.max(10, Math.min(80, currentTop + (Math.random() - 0.5) * 4));
+        const newLeft = Math.max(10, Math.min(80, currentLeft + (Math.random() - 0.5) * 4));
+
+        marker.style.top = newTop + '%';
+        marker.style.left = newLeft + '%';
+      });
+    }
+
+    // Initialize real-time updates
+    setInterval(updateStats, 30000); // Every 30 seconds
+    setInterval(updateHealthStatus, 45000); // Every 45 seconds
+    setInterval(animateVehicleMarkers, 10000); // Every 10 seconds
+
+    // Card hover effects
+    document.querySelectorAll('.user-card, .stat-card').forEach(card => {
+      card.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-5px) scale(1.02)';
+      });
+
+      card.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0) scale(1)';
+      });
+    });
+
+    // System status monitoring
+    function checkSystemStatus() {
+      const statusDot = document.querySelector('.status-dot');
+      const statusText = document.querySelector('.system-status');
+
+      // Simulate system health check
+      const isHealthy = Math.random() > 0.1; // 90% chance system is healthy
+
+      if (isHealthy) {
+        statusDot.style.background = '#4ade80';
+        statusText.style.background = 'rgba(74, 222, 128, 0.3)';
+        statusText.style.color = '#4ade80';
+      } else {
+        statusDot.style.background = '#f59e0b';
+        statusText.style.background = 'rgba(245, 158, 11, 0.3)';
+        statusText.style.color = '#f59e0b';
+      }
+    }
+
+    setInterval(checkSystemStatus, 60000); // Every minute
+
+    // Initialize tooltips and interactions
+    document.querySelectorAll('.card-btn, .user-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        this.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          this.style.transform = 'scale(1)';
+        }, 150);
+      });
+    });
+  </script>
+</body>
+</html>

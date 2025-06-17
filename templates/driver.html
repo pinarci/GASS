@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Şoför Paneli - General AI Safety Systems</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+    }
+
+    /* Header */
+    .header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+    }
+
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .vehicle-info {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      margin-left: 1rem;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-info {
+      text-align: right;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .user-role {
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    .logout-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+    }
+
+    .logout-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    /* Main container */
+    .main-container {
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Card styles */
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      color: white;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-title-section {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .card-icon {
+      font-size: 2rem;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .card-badge {
+      background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+      color: white;
+      padding: 0.4rem 0.8rem;
+      border-radius: 15px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    /* Student list */
+    .student-list {
+      grid-row: 1 / 3;
+    }
+
+    .student-grid {
+      display: grid;
+      gap: 1rem;
+      max-height: 600px;
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+
+    .student-card {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .student-card:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateX(5px);
+    }
+
+    .student-card.on-bus {
+      border-left: 4px solid #4ade80;
+      background: rgba(74, 222, 128, 0.1);
+    }
+
+    .student-card.not-on-bus {
+      border-left: 4px solid #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .student-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .student-info {
+      flex: 1;
+    }
+
+    .student-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .student-class {
+      opacity: 0.8;
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .student-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 15px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .status-on-bus {
+      background: rgba(74, 222, 128, 0.2);
+      color: #4ade80;
+    }
+
+    .status-waiting {
+      background: rgba(251, 191, 36, 0.2);
+      color: #fbbf24;
+    }
+
+    .status-dropped {
+      background: rgba(156, 163, 175, 0.2);
+      color: #9ca3af;
+    }
+
+    .student-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .action-btn {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.6rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .action-btn.primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border-color: #3b82f6;
+    }
+
+    /* Camera system */
+    .camera-system {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 1rem;
+    }
+
+    .camera-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .camera-view {
+      background: linear-gradient(45deg, #2d3748 0%, #4a5568 100%);
+      border-radius: 12px;
+      aspect-ratio: 4/3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: rgba(255, 255, 255, 0.7);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .camera-label {
+      position: absolute;
+      top: 0.5rem;
+      left: 0.5rem;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .camera-status {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: rgba(34, 197, 94, 0.9);
+      color: white;
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .recording-dot {
+      width: 6px;
+      height: 6px;
+      background: #ef4444;
+      border-radius: 50%;
+      animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .camera-controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+
+    .camera-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .camera-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .camera-btn.active {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border-color: #3b82f6;
+    }
+
+    /* Alerts section */
+    .alerts {
+      grid-column: 1 / -1;
+    }
+
+    .alert-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .alert-item {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .alert-item.new {
+      border-left: 4px solid #fbbf24;
+      background: rgba(251, 191, 36, 0.1);
+      animation: slideInLeft 0.5s ease-out;
+    }
+
+    .alert-item.success {
+      border-left: 4px solid #4ade80;
+      background: rgba(74, 222, 128, 0.1);
+    }
+
+    .alert-item.warning {
+      border-left: 4px solid #f59e0b;
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .alert-icon {
+      font-size: 1.5rem;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .alert-icon.success {
+      background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+    }
+
+    .alert-icon.warning {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .alert-content {
+      flex: 1;
+    }
+
+    .alert-title {
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .alert-time {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+
+    .alert-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .alert-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .alert-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Navigation tabs */
+    .nav-tabs {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 25px;
+      padding: 0.5rem;
+      display: flex;
+      gap: 0.5rem;
+      z-index: 100;
+    }
+
+    .nav-tab {
+      padding: 0.75rem 1.5rem;
+      border-radius: 20px;
+      text-decoration: none;
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .nav-tab.active,
+    .nav-tab:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    /* Responsive design */
+    @media (max-width: 1024px) {
+      .main-container {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+      }
+
+      .camera-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header {
+        padding: 1rem;
+      }
+
+      .vehicle-info {
+        display: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .nav-tabs {
+        bottom: 1rem;
+        left: 1rem;
+        right: 1rem;
+        transform: none;
+      }
+
+      .nav-tab {
+        flex: 1;
+        justify-content: center;
+        padding: 0.75rem 0.5rem;
+      }
+
+      .student-actions {
+        flex-direction: column;
+      }
+    }
+
+    /* Animations */
+    @keyframes slideInLeft {
+      from {
+        opacity: 0;
+        transform: translateX(-50px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* Scrollbar styling */
+    .student-grid::-webkit-scrollbar,
+    .alert-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .student-grid::-webkit-scrollbar-track,
+    .alert-list::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    .student-grid::-webkit-scrollbar-thumb,
+    .alert-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">🚌</div>
+      <div class="header-title">Şoför Paneli</div>
+      <div class="vehicle-info">🚐 Araç: 34 ABC 123</div>
+    </div>
+    <div class="header-right">
+      <div class="user-info">
+        <div class="user-name">Mehmet Kaya</div>
+        <div class="user-role">Şoför</div>
+      </div>
+      <a href="/login" class="logout-btn">Çıkış</a>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="main-container">
+    <!-- Student List -->
+    <div class="card student-list">
+      <div class="card-header">
+        <div class="card-title-section">
+          <div class="card-icon">👥</div>
+          <div class="card-title">Öğrenci Listesi</div>
+        </div>
+        <div class="card-badge">12 / 15</div>
+      </div>
+      <div class="student-grid">
+        <div class="student-card on-bus">
+          <div class="student-header">
+            <div class="student-info">
+              <div class="student-name">Zeynep Yılmaz</div>
+              <div class="student-class">4-A Sınıfı</div>
+              <div class="student-status status-on-bus">
+                🟢 Otobüste
+              </div>
+            </div>
+          </div>
+          <div class="student-actions">
+            <button class="action-btn">📞 Veliyi Ara</button>
+            <button class="action-btn primary">✅ İndir</button>
+          </div>
+        </div>
+
+        <div class="student-card on-bus">
+          <div class="student-header">
+            <div class="student-info">
+              <div class="student-name">Ahmet Demir</div>
+              <div class="student-class">3-B Sınıfı</div>
+              <div class="student-status status-on-bus">
+                🟢 Otobüste
+              </div>
+            </div>
+          </div>
+          <div class="student-actions">
+            <button class="action-btn">📞 Veliyi Ara</button>
+            <button class="action-btn primary">✅ İndir</button>
+          </div>
+        </div>
+
+        <div class="student-card not-on-bus">
+          <div class="student-header">
+            <div class="student-info">
+              <div class="student-name">Elif Özkan</div>
+              <div class="student-class">2-C Sınıfı</div>
+              <div class="student-status status-waiting">
+                🟡 Bekliyor
+              </div>
+            </div>
+          </div>
+          <div class="student-actions">
+            <button class="action-btn">📞 Veliyi Ara</button>
+            <button class="action-btn primary">✅ Bindireceğim</button>
+          </div>
+        </div>
+
+        <div class="student-card not-on-bus">
+          <div class="student-header">
+            <div class="student-info">
+              <div class="student-name">Can Arslan</div>
+              <div class="student-class">5-A Sınıfı</div>
+              <div class="student-status status-dropped">
+                ⚪ İndirildi
+              </div>
+            </div>
+          </div>
+          <div class="student-actions">
+            <button class="action-btn">📋 Detay</button>
+            <button class="action-btn">📞 Veli</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Camera System -->
+    <div class="card camera-system">
+      <div class="card-header">
+        <div class="card-title-section">
+          <div class="card-icon">📹</div>
+          <div class="card-title">Kamera Sistemi</div>
+        </div>
+        <div class="card-badge">Aktif</div>
+      </div>
+      <div class="camera-grid">
+        <div class="camera-view">
+          <div class="camera-label">Ön Kamera</div>
+          <div class="camera-status">
+            <div class="recording-dot"></div>
+            REC
+          </div>
+          📹
+        </div>
+        <div class="camera-view">
+          <div class="camera-label">İç Kamera</div>
+          <div class="camera-status">
+            <div class="recording-dot"></div>
+            REC
+          </div>
+          📹
+        </div>
+      </div>
+      <div class="camera-controls">
+        <button class="camera-btn active">
+          <span>📹</span>
+          <span>Kayıt</span>
+        </button>
+        <button class="camera-btn">
+          <span>📸</span>
+          <span>Fotoğraf</span>
+        </button>
+        <button class="camera-btn">
+          <span>⚙️</span>
+          <span>Ayarlar</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Alerts & Notifications -->
+    <div class="card alerts">
+      <div class="card-header">
+        <div class="card-title-section">
+          <div class="card-icon">🚨</div>
+          <div class="card-title">Uyarılar & Bildirimler</div>
+        </div>
+      </div>
+      <div class="alert-list">
+        <div class="alert-item new">
+          <div class="alert-icon success">✅</div>
+          <div class="alert-content">
+            <div class="alert-title">Zeynep Yılmaz başarıyla tanındı</div>
+            <div class="alert-time">Şimdi</div>
+          </div>
+          <div class="alert-actions">
+            <button class="alert-btn">Kapat</button>
+          </div>
+        </div>
+
+        <div class="alert-item success">
+          <div class="alert-icon success">🚌</div>
+          <div class="alert-content">
+            <div class="alert-title">Ahmet Demir otobüse bindi</div>
+            <div class="alert-time">5 dakika önce</div>
+          </div>
+        </div>
+
+        <div class="alert-item warning">
+          <div class="alert-icon warning">⚠️</div>
+          <div class="alert-content">
+            <div class="alert-title">Yüz tanıma başarısız - Manuel kontrol gerekli</div>
+            <div class="alert-time">8 dakika önce</div>
+          </div>
+          <div class="alert-actions">
+            <button class="alert-btn">Kontrol Et</button>
+            <button class="alert-btn">Kapat</button>
+          </div>
+        </div>
+
+        <div class="alert-item success">
+          <div class="alert-icon success">🏫</div>
+          <div class="alert-content">
+            <div class="alert-title">Can Arslan okula güvenle ulaştırıldı</div>
+            <div class="alert-time">15 dakika önce</div>
+          </div>
+        </div>
+
+        <div class="alert-item success">
+          <div class="alert-icon success">💬</div>
+          <div class="alert-content">
+            <div class="alert-title">Ayşe Yılmaz (Veli): "Teşekkürler"</div>
+            <div class="alert-time">1 saat önce</div>
+          </div>
+          <div class="alert-actions">
+            <button class="alert-btn">Yanıtla</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="nav-tabs">
+    <a href="#" class="nav-tab active">
+      <span>🏠</span>
+      <span>Panel</span>
+    </a>
+    <a href="/driver-students" class="nav-tab">
+      <span>👥</span>
+      <span>Öğrenciler</span>
+    </a>
+    <a href="/messages" class="nav-tab">
+      <span>💬</span>
+      <span>Mesajlar</span>
+    </a>
+    <a href="/driver-route" class="nav-tab">
+      <span>🗺️</span>
+      <span>Rota</span>
+    </a>
+  </div>
+
+  <script>
+    // Student action handlers
+    document.querySelectorAll('.action-btn').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+
+        if (this.textContent.includes('İndir')) {
+          this.textContent = '✅ İndirildi';
+          this.style.background = 'rgba(74, 222, 128, 0.3)';
+          this.parentElement.parentElement.parentElement.classList.remove('on-bus');
+          this.parentElement.parentElement.parentElement.classList.add('not-on-bus');
+
+          const statusElement = this.parentElement.parentElement.querySelector('.student-status');
+          statusElement.textContent = '⚪ İndirildi';
+          statusElement.className = 'student-status status-dropped';
+
+          // Add success alert
+          addAlert('success', 'Öğrenci başarıyla indirildi', 'Şimdi');
+        }
+
+        if (this.textContent.includes('Bindireceğim')) {
+          this.textContent = '✅ Bindirildi';
+          this.style.background = 'rgba(74, 222, 128, 0.3)';
+          this.parentElement.parentElement.parentElement.classList.remove('not-on-bus');
+          this.parentElement.parentElement.parentElement.classList.add('on-bus');
+
+          const statusElement = this.parentElement.parentElement.querySelector('.student-status');
+          statusElement.textContent = '🟢 Otobüste';
+          statusElement.className = 'student-status status-on-bus';
+
+          // Add success alert
+          addAlert('success', 'Öğrenci başarıyla bindirildi', 'Şimdi');
+        }
+
+        if (this.textContent.includes('Veliyi Ara')) {
+          this.textContent = '📞 Aranıyor...';
+          this.style.background = 'rgba(251, 191, 36, 0.3)';
+
+          setTimeout(() => {
+            this.textContent = '📞 Veliyi Ara';
+            this.style.background = 'rgba(255, 255, 255, 0.2)';
+            addAlert('success', 'Veli ile görüşme tamamlandı', 'Şimdi');
+          }, 3000);
+        }
+      });
+    });
+
+    // Camera controls
+    document.querySelectorAll('.camera-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.camera-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        if (this.textContent.includes('Fotoğraf')) {
+          addAlert('success', 'Fotoğraf çekildi ve kaydedildi', 'Şimdi');
+        }
+      });
+    });
+
+    // Alert handlers
+    document.querySelectorAll('.alert-btn').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+
+        if (this.textContent === 'Kapat') {
+          this.parentElement.parentElement.style.display = 'none';
+        }
+
+        if (this.textContent === 'Kontrol Et') {
+          this.textContent = 'Kontrol Ediliyor...';
+          this.style.background = 'rgba(251, 191, 36, 0.3)';
+
+          setTimeout(() => {
+            this.parentElement.parentElement.style.display = 'none';
+            addAlert('success', 'Manuel kontrol tamamlandı', 'Şimdi');
+          }, 2000);
+        }
+
+        if (this.textContent === 'Yanıtla') {
+          addAlert('success', 'Mesaja yanıt gönderildi', 'Şimdi');
+          this.parentElement.parentElement.style.display = 'none';
+        }
+      });
+    });
+
+    // Add new alert function
+    function addAlert(type, title, time) {
+      const alertList = document.querySelector('.alert-list');
+      const alertItem = document.createElement('div');
+      alertItem.className = `alert-item new ${type}`;
+
+      const iconMap = {
+        success: '✅',
+        warning: '⚠️',
+        info: 'ℹ️'
+      };
+
+      alertItem.innerHTML = `
+        <div class="alert-icon ${type}">${iconMap[type]}</div>
+        <div class="alert-content">
+          <div class="alert-title">${title}</div>
+          <div class="alert-time">${time}</div>
+        </div>
+        <div class="alert-actions">
+          <button class="alert-btn">Kapat</button>
+        </div>
+      `;
+
+      alertList.insertBefore(alertItem, alertList.firstChild);
+
+      // Add close handler to new alert
+      alertItem.querySelector('.alert-btn').addEventListener('click', function() {
+        alertItem.style.display = 'none';
+      });
+
+      // Auto remove 'new' class after animation
+      setTimeout(() => {
+        alertItem.classList.remove('new');
+      }, 500);
+    }
+
+    // Simulate real-time updates
+    function simulateRealTimeUpdates() {
+      const updates = [
+        { type: 'success', title: 'Yeni öğrenci tespit edildi', time: 'Şimdi' },
+        { type: 'warning', title: 'Kamera bağlantısı zayıf', time: 'Şimdi' },
+        { type: 'success', title: 'Rota güncellendi', time: 'Şimdi' }
+      ];
+
+      let index = 0;
+
+      setInterval(() => {
+        if (index < updates.length) {
+          const update = updates[index];
+          addAlert(update.type, update.title, update.time);
+          index++;
+        }
+      }, 15000); // Every 15 seconds
+    }
+
+    // Update student count
+    function updateStudentCount() {
+      const onBusStudents = document.querySelectorAll('.student-card.on-bus').length;
+      const totalStudents = document.querySelectorAll('.student-card').length;
+      const badge = document.querySelector('.card-badge');
+      badge.textContent = `${onBusStudents} / ${totalStudents}`;
+    }
+
+    // Initialize
+    setTimeout(simulateRealTimeUpdates, 5000);
+
+    // Add click handlers for student cards
+    document.querySelectorAll('.student-card').forEach(card => {
+      card.addEventListener('click', function(e) {
+        if (!e.target.classList.contains('action-btn')) {
+          this.style.transform = 'translateX(5px) scale(1.02)';
+          setTimeout(() => {
+            this.style.transform = 'translateX(5px)';
+          }, 200);
+        }
+      });
+    });
+
+    // Real-time clock update for alerts
+    function updateAlertTimes() {
+      // This would update alert times in a real application
+      // For demo purposes, we'll just log
+      console.log('Alert times updated');
+    }
+
+    setInterval(updateAlertTimes, 60000); // Every minute
+
+    // Emergency button (could be added to header)
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'F1') {
+        addAlert('warning', 'ACİL DURUM BUTONU BASILDI!', 'Şimdi');
+        // In real app, this would trigger emergency protocols
+      }
+    });
+
+    // Monitor student count changes
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          updateStudentCount();
+        }
+      });
+    });
+
+    document.querySelectorAll('.student-card').forEach(card => {
+      observer.observe(card, { attributes: true });
+    });
+  </script>
+</body>
+</html>

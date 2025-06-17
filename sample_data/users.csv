@@ -1,0 +1,7 @@
+username,password,role,full_name,email,phone
+ayse.yilmaz,parent123,parent,Ayşe Yılmaz,ayse@email.com,0555-111-2222
+mehmet.demir,parent456,parent,Mehmet Demir,mehmet@email.com,0555-333-4444
+fatma.kaya,parent789,parent,Fatma Kaya,fatma@email.com,0555-555-6666
+ali.driver,driver123,driver,Ali Şahin,ali@school.edu.tr,0555-777-8888
+hasan.driver,driver456,driver,Hasan Özkan,hasan@school.edu.tr,0555-999-0000
+admin,admin123,admin,Okul Yöneticisi,admin@school.edu.tr,0555-100-2000
