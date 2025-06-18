@@ -195,76 +195,34 @@
       color: white;
     }
 
-    /* Live camera card */
-    .camera-view {
-      position: relative;
-      overflow: hidden;
-    }
-
-    .camera-display {
-      width: 100%;
-      height: 300px;
-      background: linear-gradient(45deg, #2d3748 0%, #4a5568 100%);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3rem;
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 1rem;
-      position: relative;
-    }
-
-    .camera-status {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      background: rgba(34, 197, 94, 0.9);
+    .status-just-off-bus {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
       color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
+      animation: pulse 2s ease-in-out infinite;
     }
 
-    .camera-controls {
-      display: flex;
-      gap: 0.5rem;
-    }
 
-    .camera-btn {
-      flex: 1;
-      background: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      color: white;
-      padding: 0.75rem;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .camera-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
 
     /* Location map card */
     .location-map {
       position: relative;
+      grid-column: 1 / -1; /* Make it span both columns */
     }
 
     .map-display {
       width: 100%;
       height: 300px;
-      background: linear-gradient(45deg, #1e293b 0%, #334155 100%);
       border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3rem;
-      color: rgba(255, 255, 255, 0.7);
       margin-bottom: 1rem;
       position: relative;
+      overflow: hidden;
+    }
+
+    .map-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 12px;
     }
 
     .location-info {
@@ -272,11 +230,13 @@
       bottom: 1rem;
       left: 1rem;
       right: 1rem;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(10px);
       color: white;
       padding: 1rem;
       border-radius: 8px;
       font-size: 0.9rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .location-text {
@@ -337,6 +297,10 @@
 
     .activity-icon.departure {
       background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    .activity-icon.getting-off {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
     }
 
     .activity-content {
@@ -465,8 +429,8 @@
     </div>
     <div class="header-right">
       <div class="user-info">
-        <div class="user-name">Ayşe Yılmaz</div>
-        <div class="user-role">Veli</div>
+        <div class="user-name">{{ user_name }}</div>
+        <div class="user-role">{{ current_user.role.capitalize() }}</div>
       </div>
       <a href="/login" class="logout-btn">Çıkış</a>
     </div>
@@ -477,36 +441,22 @@
     <!-- Student Status -->
     <div class="card student-status">
       <div class="card-header">
-        <div class="card-icon">👧</div>
+        <div class="card-icon">{% if student.gender == 'F' %}👧{% else %}👦{% endif %}</div>
         <div class="card-title">Öğrenci Durumu</div>
       </div>
       <div class="student-info">
-        <div class="student-avatar">👧</div>
+        <div class="student-avatar">{% if student.gender == 'F' %}👧{% else %}👦{% endif %}</div>
         <div class="student-details">
-          <div class="student-name">Zeynep Yılmaz</div>
-          <div class="student-class">4-A Sınıfı</div>
-          <div class="status-indicator status-on-bus">
-            🚌 Otobüste
+          <div class="student-name">{{ student.name }}</div>
+          <div class="student-class">{{ student.class }} Sınıfı</div>
+          <div class="status-indicator {{ student.status_class }}">
+            {% if student.status == 'At Home' %}🏠{% elif student.status == 'In the bus' %}🚌{% else %}🏫{% endif %} {{ student.status }}
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Live Camera View -->
-    <div class="card camera-view">
-      <div class="card-header">
-        <div class="card-icon">📹</div>
-        <div class="card-title">Canlı Kamera</div>
-      </div>
-      <div class="camera-display">
-        <div class="camera-status">🔴 CANLI</div>
-        📹
-      </div>
-      <div class="camera-controls">
-        <button class="camera-btn">Ön Kamera</button>
-        <button class="camera-btn">İç Kamera</button>
-      </div>
-    </div>
+
 
     <!-- Location Map -->
     <div class="card location-map">
@@ -515,7 +465,11 @@
         <div class="card-title">Konum Takibi</div>
       </div>
       <div class="map-display">
-        🗺️
+        <iframe 
+          class="map-iframe"
+          src="https://www.google.com/maps/embed/v1/view?key=YOUR_API_KEY&center=41.0082,28.9784&zoom=15&maptype=roadmap"
+          allowfullscreen>
+        </iframe>
         <div class="location-info">
           <div class="location-text">📍 Atatürk Caddesi, No: 45</div>
           <div class="location-coords">41.0082° K, 28.9784° D</div>
@@ -533,7 +487,7 @@
         <div class="activity-item">
           <div class="activity-icon boarding">🚌</div>
           <div class="activity-content">
-            <div class="activity-text">Zeynep otobüse bindi</div>
+            <div class="activity-text">{{ student.name.split()[0] }} otobüse bindi</div>
             <div class="activity-time">Bugün 07:45</div>
           </div>
         </div>
@@ -561,62 +515,317 @@
       <span>🏠</span>
       <span>Ana Sayfa</span>
     </a>
-    <a href="/parent-notifications" class="nav-tab">
-      <span>🔔</span>
-      <span>Bildirimler</span>
-    </a>
     <a href="/messages" class="nav-tab">
       <span>💬</span>
       <span>Mesajlar</span>
     </a>
   </div>
 
-  <!-- Floating Notification (example) -->
+  <!-- Floating Notification -->
   <div class="floating-notification" id="notification" style="display: none;">
-    <strong>📍 Yeni Konum:</strong> Zeynep eve yaklaşıyor
+    <strong>🚌 Bus Notification:</strong> Your child just got on the bus
   </div>
+  
+  <!-- Hidden data for JavaScript -->
+  <div id="initial-attendance" style="display: none;">{{ student.attendance }}</div>
 
   <script>
-    // Simulate real-time updates
-    function updateStudentStatus() {
-      const statuses = [
-        { text: '🚌 Otobüste', class: 'status-on-bus' },
-        { text: '🏫 Okula indi', class: 'status-at-school' },
-        { text: '🏠 Eve vardı', class: 'status-at-home' }
-      ];
-
-      const statusElement = document.querySelector('.status-indicator');
-      let currentIndex = 0;
-
-      setInterval(() => {
-        const status = statuses[currentIndex];
-        statusElement.textContent = status.text;
-        statusElement.className = `status-indicator ${status.class}`;
-        currentIndex = (currentIndex + 1) % statuses.length;
-      }, 8000);
+    // Track previous attendance status to detect changes
+    let previousAttendance = document.getElementById('initial-attendance').textContent.trim() === 'True';
+    let isFirstCheck = true; // Flag to prevent notification on first API call
+    let temporaryOffBusStatus = false; // Flag for temporary "just got off" status
+    let offBusTimeout = null; // Timeout for reverting status
+    
+    // Dynamic status checking - polls server every 5 seconds
+    function checkStudentStatus() {
+      fetch('/api/student-status')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const statusElement = document.querySelector('.status-indicator');
+            const studentNameElement = document.querySelector('.student-name');
+            const studentClassElement = document.querySelector('.student-class');
+            
+            // Check if attendance changed from false to true (got on the bus)
+            if (!isFirstCheck && !previousAttendance && data.student.attendance) {
+              showBusNotification(data.student.name, 'boarded');
+            }
+            
+            // Check if attendance changed from true to false (got off the bus)
+            if (!isFirstCheck && previousAttendance && !data.student.attendance) {
+              showOffBusNotification(data.student.name);
+            }
+            
+            // Update previous attendance status
+            previousAttendance = data.student.attendance;
+            isFirstCheck = false; // After first check, allow notifications
+            
+            // Update status indicator (consider temporary status)
+            let displayStatus = data.student.status;
+            let displayClass = data.student.status_class;
+            let displayIcon = data.student.status_icon;
+            
+            // If we have a temporary "just got off" status, override the display
+            if (temporaryOffBusStatus && !data.student.attendance) {
+              displayStatus = 'Just got off the bus';
+              displayClass = 'status-just-off-bus';
+              displayIcon = '🏃‍♂️';
+            }
+            
+            statusElement.className = `status-indicator ${displayClass}`;
+            statusElement.innerHTML = `${displayIcon} ${displayStatus}`;
+            
+            // Update student info if changed
+            studentNameElement.textContent = data.student.name;
+            studentClassElement.textContent = `${data.student.class} Sınıfı`;
+            
+            console.log('Status updated:', displayStatus);
+          } else {
+            console.error('Failed to fetch student status:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching student status:', error);
+        });
     }
 
-    // Show notification periodically
-    function showNotification() {
+    // Show notification when child gets on the bus
+    function showBusNotification(studentName, type) {
       const notification = document.getElementById('notification');
+      const firstName = studentName.split(' ')[0];
+      notification.innerHTML = `<strong>🚌 Bus Notification:</strong> Your child ${firstName} just got on the bus`;
       notification.style.display = 'block';
+
+      // Add to activities list permanently and save to database
+      const activityText = `${firstName} otobüse bindi`;
+      addActivityToList(firstName, 'boarded', activityText, true);
 
       setTimeout(() => {
         notification.style.display = 'none';
-      }, 4000);
+      }, 5000);
     }
 
-    // Camera switching functionality
-    document.querySelectorAll('.camera-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.camera-btn').forEach(b => b.style.background = 'rgba(255, 255, 255, 0.2)');
-        this.style.background = 'rgba(255, 255, 255, 0.4)';
-      });
-    });
+    // Show notification when child gets off the bus
+    function showOffBusNotification(studentName) {
+      const notification = document.getElementById('notification');
+      const firstName = studentName.split(' ')[0];
+      notification.innerHTML = `<strong>🏃‍♂️ Bus Notification:</strong> Your child ${firstName} just got off the bus`;
+      notification.style.display = 'block';
 
-    // Initialize
-    setTimeout(updateStudentStatus, 1000);
-    setTimeout(showNotification, 5000);
+      // Set temporary status flag
+      temporaryOffBusStatus = true;
+      
+      // Clear any existing timeout
+      if (offBusTimeout) {
+        clearTimeout(offBusTimeout);
+      }
+      
+      // Revert to normal status after 30 seconds (will show "At Home" after page refresh)
+      offBusTimeout = setTimeout(() => {
+        temporaryOffBusStatus = false;
+        // Force a status update to revert to normal "At Home"
+        checkStudentStatus();
+      }, 30000); // 30 seconds
+
+      // Add to activities list permanently and save to database
+      const activityText = `${firstName} otobüsten indi`;
+      addActivityToList(firstName, 'got_off', activityText, true);
+
+      setTimeout(() => {
+        notification.style.display = 'none';
+      }, 5000);
+    }
+
+    // Add new activity to the activities list
+    function addActivityToList(studentName, activityType, activityText = null, saveToDb = false, timestamp = null) {
+      const activityList = document.querySelector('.activity-list');
+      
+      // Use provided timestamp or current time
+      let timeString, dateString;
+      if (timestamp) {
+        const activityDate = new Date(timestamp);
+        timeString = activityDate.toLocaleTimeString('tr-TR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        const today = new Date();
+        const isToday = activityDate.toDateString() === today.toDateString();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const isYesterday = activityDate.toDateString() === yesterday.toDateString();
+        
+        if (isToday) {
+          dateString = 'Bugün';
+        } else if (isYesterday) {
+          dateString = 'Dün';
+        } else {
+          dateString = activityDate.toLocaleDateString('tr-TR');
+        }
+      } else {
+        const now = new Date();
+        timeString = now.toLocaleTimeString('tr-TR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        dateString = 'Bugün';
+      }
+
+      // Create new activity item
+      const newActivity = document.createElement('div');
+      newActivity.className = 'activity-item';
+      newActivity.style.opacity = '0';
+      newActivity.style.transform = 'translateX(-20px)';
+
+      let finalActivityText, iconClass, iconEmoji;
+      
+      if (activityText) {
+        finalActivityText = activityText;
+      } else if (activityType === 'boarded') {
+        finalActivityText = `${studentName} otobüse bindi`;
+      } else if (activityType === 'got_off') {
+        finalActivityText = `${studentName} otobüsten indi`;
+      }
+      
+      if (activityType === 'boarded') {
+        iconClass = 'boarding';
+        iconEmoji = '🚌';
+      } else if (activityType === 'got_off') {
+        iconClass = 'getting-off';
+        iconEmoji = '🏃‍♂️';
+      }
+
+      newActivity.innerHTML = `
+        <div class="activity-icon ${iconClass}">${iconEmoji}</div>
+        <div class="activity-content">
+          <div class="activity-text">${finalActivityText}</div>
+          <div class="activity-time">${dateString} ${timeString}</div>
+        </div>
+      `;
+
+      // Insert at the beginning of the list
+      activityList.insertBefore(newActivity, activityList.firstChild);
+
+      // Animate in
+      setTimeout(() => {
+        newActivity.style.transition = 'all 0.3s ease';
+        newActivity.style.opacity = '1';
+        newActivity.style.transform = 'translateX(0)';
+      }, 100);
+
+      // Save to database if requested
+      if (saveToDb) {
+        fetch('/api/save-activity', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            student_name: studentName,
+            activity_type: activityType,
+            activity_text: finalActivityText
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            console.log('Activity saved to database');
+          } else {
+            console.error('Failed to save activity:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error saving activity:', error);
+        });
+      }
+
+      // Limit to maximum 5 activities
+      const activities = activityList.querySelectorAll('.activity-item');
+      if (activities.length > 5) {
+        activities[activities.length - 1].remove();
+      }
+    }
+
+    // Load activities from database on page load
+    function loadActivities() {
+      fetch('/api/get-activities')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && data.activities.length > 0) {
+            // Clear existing static activities
+            const activityList = document.querySelector('.activity-list');
+            activityList.innerHTML = '';
+            
+            // Add activities from database in reverse order since they come latest first
+            // but addActivityToList() inserts at the beginning
+            data.activities.reverse().forEach(activity => {
+              addActivityToList(
+                activity.student_name, 
+                activity.activity_type, 
+                activity.activity_text, 
+                false, // Don't save to DB again
+                activity.timestamp
+              );
+            });
+          }
+        })
+        .catch(error => {
+          console.error('Error loading activities:', error);
+        });
+    }
+
+    // Load activities from database on page load
+    loadActivities();
+
+    // Start dynamic status checking every 5 seconds
+    setInterval(checkStudentStatus, 5000);
+
+    // Map functionality
+    let currentLocation = {
+      lat: 41.0082,
+      lng: 28.9784,
+      address: "Atatürk Caddesi, No: 45"
+    };
+
+    // Update map with new coordinates
+    function updateMapLocation(lat, lng, address = null) {
+      const mapIframe = document.querySelector('.map-iframe');
+      const locationText = document.querySelector('.location-text');
+      const locationCoords = document.querySelector('.location-coords');
+      
+      // Update iframe src with new coordinates
+      mapIframe.src = `https://www.google.com/maps/embed/v1/view?key=YOUR_API_KEY&center=${lat},${lng}&zoom=15&maptype=roadmap`;
+      
+      // Update location info
+      if (address) {
+        locationText.textContent = `📍 ${address}`;
+      }
+      locationCoords.textContent = `${lat.toFixed(4)}° K, ${lng.toFixed(4)}° D`;
+      
+      currentLocation = { lat, lng, address: address || currentLocation.address };
+    }
+
+    // Simulate bus movement (for demonstration)
+    function simulateBusMovement() {
+      // This would normally come from your real bus tracking API
+      // For now, we'll use the static coordinates
+      const locations = [
+        { lat: 41.0082, lng: 28.9784, address: "Atatürk Caddesi, No: 45" },
+        { lat: 41.0085, lng: 28.9790, address: "Taksim Meydanı" },
+        { lat: 41.0090, lng: 28.9795, address: "İstiklal Caddesi" }
+      ];
+      
+      // You can enable this for demo purposes:
+      // let locationIndex = 0;
+      // setInterval(() => {
+      //   updateMapLocation(locations[locationIndex].lat, locations[locationIndex].lng, locations[locationIndex].address);
+      //   locationIndex = (locationIndex + 1) % locations.length;
+      // }, 10000); // Update every 10 seconds
+    }
+
+    // Initialize map
+    simulateBusMovement();
+
+    // No automatic periodic notifications
 
     // Add some interactivity to cards
     document.querySelectorAll('.card').forEach(card => {

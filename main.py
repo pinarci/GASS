@@ -43,6 +43,8 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Database paths
 USERS_DB = PROJECT_ROOT / "production_users.db"
+LOGIN_USERS_DB = PROJECT_ROOT / "loginusers.db"
+STUDENTS_DB = PROJECT_ROOT / "students.db"
 MESSAGES_DB = PROJECT_ROOT / "messages.db"
 UPLOAD_FOLDER = PROJECT_ROOT / "static" / "uploads"
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
@@ -574,33 +576,28 @@ def login():
             flash("Kullanıcı adı ve şifre gereklidir.", "error")
             return render_template("login.html")
 
-        # Authenticate user
-        conn = sqlite3.connect(USERS_DB)
+        # Authenticate user from loginusers.db
+        conn = sqlite3.connect(LOGIN_USERS_DB)
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT id, username, password_hash, role, full_name, email, phone
-            FROM users 
-            WHERE username = ? AND is_active = 1
+            SELECT full_name, user_name, password, role
+            FROM USERS 
+            WHERE user_name = ?
         ''', (username,))
 
         user = cursor.fetchone()
+        conn.close()
 
-        if user and check_password_hash(user[2], password):
-            # Update last login and online status
-            cursor.execute('''
-                UPDATE users SET last_login = ?, online_status = 'online' WHERE id = ?
-            ''', (datetime.now(), user[0]))
-            conn.commit()
-
+        if user and user[2] == password:  # Direct password comparison
             # Set session data
-            session['user_id'] = user[0]
+            session['user_id'] = username  # Using username as user_id since no ID in loginusers.db
             session['username'] = user[1]
             session['user_role'] = user[3]
-            session['full_name'] = user[4]
-            session['email'] = user[5]
-            session['phone'] = user[6]
+            session['full_name'] = user[0]
+            session['email'] = ""  # Not available in loginusers.db
+            session['phone'] = ""  # Not available in loginusers.db
 
-            flash(f"Hoş geldiniz, {user[4]}!", "success")
+            flash(f"Hoş geldiniz, {user[0]}!", "success")
 
             # Role-based redirection
             if user[3] == 'parent':
@@ -609,24 +606,17 @@ def login():
                 return redirect(url_for('driver_dashboard'))
             elif user[3] == 'admin':
                 return redirect(url_for('admin_dashboard'))
+            else:
+                flash("Geçersiz kullanıcı rolü.", "error")
+                return render_template("login.html")
         else:
             flash("Geçersiz kullanıcı adı veya şifre.", "error")
-
-        conn.close()
 
     return render_template("login.html")
 
 
 @app.route("/logout")
 def logout():
-    if 'user_id' in session:
-        # Update online status
-        conn = sqlite3.connect(USERS_DB)
-        cursor = conn.cursor()
-        cursor.execute('UPDATE users SET online_status = "offline" WHERE id = ?', (session['user_id'],))
-        conn.commit()
-        conn.close()
-
     session.clear()
     flash("Çıkış yapıldı.", "info")
     return redirect(url_for('login'))
@@ -638,62 +628,67 @@ def logout():
 @login_required
 @role_required('parent')
 def parent_dashboard():
-    """Enhanced parent dashboard with real data"""
-    conn = sqlite3.connect(USERS_DB)
+    """Enhanced parent dashboard with real data from students.db"""
+    # Get student data from students.db based on parent's full_name
+    conn = sqlite3.connect(STUDENTS_DB)
     cursor = conn.cursor()
 
-    # Get real student data with current status
+    parent_full_name = session['full_name']
+    
+    # Find student whose father_name or mother_name matches the logged-in parent's full_name
     cursor.execute('''
-        SELECT s.id, s.full_name, s.class_name, s.current_status,
-               d.full_name as driver_name, d.phone as driver_phone,
-               v.license_plate, v.current_latitude, v.current_longitude
-        FROM students s
-        LEFT JOIN users d ON s.assigned_driver_id = d.id
-        LEFT JOIN vehicles v ON d.id = v.driver_id
-        WHERE s.parent_id = ? AND s.is_active = 1
-    ''', (session['user_id'],))
+        SELECT full_name, father_name, mother_name, class, gender, attendance
+        FROM STUDENT 
+        WHERE father_name = ? OR mother_name = ?
+    ''', (parent_full_name, parent_full_name))
 
-    students_data = cursor.fetchall()
-    students = []
+    student_data = cursor.fetchone()
+    conn.close()
 
-    for student in students_data:
-        # Get latest attendance
-        cursor.execute('''
-            SELECT event_type, timestamp FROM attendance_logs 
-            WHERE student_id = ? AND DATE(timestamp) = DATE('now')
-            ORDER BY timestamp DESC LIMIT 1
-        ''', (student[0],))
-
-        attendance = cursor.fetchone()
-        last_activity = attendance[1] if attendance else "Bugün aktivite yok"
-
-        # Determine status
-        status_map = {
-            'at_home': 'Evde',
-            'on_bus': 'Otobüste',
-            'at_school': 'Okulda',
-            'unknown': 'Bilinmiyor'
+    # Prepare student information
+    if student_data:
+        # Determine status based on attendance
+        if student_data[5]:  # attendance is True
+            status_text = 'In the bus'
+            status_class = 'status-on-bus'
+        else:  # attendance is False
+            status_text = 'At Home'
+            status_class = 'status-at-home'
+            
+        student_info = {
+            'name': student_data[0],
+            'father_name': student_data[1],
+            'mother_name': student_data[2],
+            'class': student_data[3],
+            'gender': student_data[4],
+            'attendance': student_data[5],
+            'status': status_text,
+            'status_class': status_class,
+            'last_activity': 'Bugün aktivite yok',
+            'driver_name': 'Atanmamış',
+            'driver_phone': 'N/A',
+            'vehicle_plate': 'N/A'
+        }
+    else:
+        # Default student info if no student found
+        student_info = {
+            'name': 'Öğrenci Bulunamadı',
+            'father_name': '',
+            'mother_name': '',
+            'class': '',
+            'gender': '',
+            'attendance': False,
+            'status': 'Unknown',
+            'status_class': 'status-at-home',
+            'last_activity': 'Veri yok',
+            'driver_name': 'Atanmamış',
+            'driver_phone': 'N/A',
+            'vehicle_plate': 'N/A'
         }
 
-        students.append({
-            'id': student[0],
-            'name': student[1],
-            'class': student[2],
-            'status': status_map.get(student[3], 'Bilinmiyor'),
-            'last_activity': last_activity,
-            'driver_name': student[4] or 'Atanmamış',
-            'driver_phone': student[5] or 'N/A',
-            'vehicle_plate': student[6] or 'N/A',
-            'location': {
-                'lat': student[7],
-                'lng': student[8]
-            } if student[7] and student[8] else None
-        })
-
-    conn.close()
     return render_template("parent.html",
                            user_name=session['full_name'],
-                           students=students,
+                           student=student_info,
                            current_user={
                                'id': session['user_id'],
                                'name': session['full_name'],
@@ -1473,6 +1468,150 @@ def api_emergency_alert():
     conn.close()
 
     return jsonify({'success': True, 'message': 'Emergency alert sent'})
+
+
+@app.route("/api/student-status")
+@login_required
+@role_required('parent')
+def api_student_status():
+    """API endpoint to get current student status dynamically"""
+    try:
+        conn = sqlite3.connect(STUDENTS_DB)
+        cursor = conn.cursor()
+
+        parent_full_name = session['full_name']
+        
+        # Find student whose father_name or mother_name matches the logged-in parent's full_name
+        cursor.execute('''
+            SELECT full_name, class, gender, attendance
+            FROM STUDENT 
+            WHERE father_name = ? OR mother_name = ?
+        ''', (parent_full_name, parent_full_name))
+
+        student_data = cursor.fetchone()
+        conn.close()
+
+        if student_data:
+            # Determine status based on attendance
+            if student_data[3]:  # attendance is True
+                status_text = 'In the bus'
+                status_class = 'status-on-bus'
+                status_icon = '🚌'
+            else:  # attendance is False
+                status_text = 'At Home'
+                status_class = 'status-at-home'
+                status_icon = '🏠'
+            
+            return jsonify({
+                'success': True,
+                'student': {
+                    'name': student_data[0],
+                    'class': student_data[1],
+                    'gender': student_data[2],
+                    'attendance': student_data[3],
+                    'status': status_text,
+                    'status_class': status_class,
+                    'status_icon': status_icon
+                }
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Student not found'
+            })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@app.route("/api/save-activity", methods=["POST"])
+@login_required
+@role_required('parent')
+def api_save_activity():
+    """Save a new activity to the database"""
+    try:
+        data = request.get_json()
+        student_name = data.get('student_name')
+        activity_type = data.get('activity_type')
+        activity_text = data.get('activity_text')
+        
+        conn = sqlite3.connect(STUDENTS_DB)
+        cursor = conn.cursor()
+        
+        # Create activities table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ACTIVITIES (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                parent_name TEXT NOT NULL,
+                student_name TEXT NOT NULL,
+                activity_type TEXT NOT NULL,
+                activity_text TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Insert new activity with Turkey timezone (UTC+3)
+        from datetime import timezone
+        turkey_tz = timezone(timedelta(hours=3))
+        turkey_time = datetime.now(turkey_tz)
+        cursor.execute('''
+            INSERT INTO ACTIVITIES (parent_name, student_name, activity_type, activity_text, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (session['full_name'], student_name, activity_type, activity_text, turkey_time.strftime('%Y-%m-%d %H:%M:%S')))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route("/api/get-activities")
+@login_required
+@role_required('parent')
+def api_get_activities():
+    """Get activities for the logged-in parent"""
+    try:
+        conn = sqlite3.connect(STUDENTS_DB)
+        cursor = conn.cursor()
+        
+        # Check if activities table exists
+        cursor.execute('''
+            SELECT name FROM sqlite_master WHERE type='table' AND name='ACTIVITIES'
+        ''')
+        
+        if cursor.fetchone() is None:
+            conn.close()
+            return jsonify({'success': True, 'activities': []})
+        
+        # Get activities for this parent (latest first)
+        cursor.execute('''
+            SELECT student_name, activity_type, activity_text, timestamp
+            FROM ACTIVITIES
+            WHERE parent_name = ?
+            ORDER BY id DESC
+            LIMIT 5
+        ''', (session['full_name'],))
+        
+        activities = []
+        for row in cursor.fetchall():
+            activities.append({
+                'student_name': row[0],
+                'activity_type': row[1],
+                'activity_text': row[2],
+                'timestamp': row[3]
+            })
+        
+        conn.close()
+        return jsonify({'success': True, 'activities': activities})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 
 # ==================== ENHANCED TEMPLATE FUNCTIONS ====================
