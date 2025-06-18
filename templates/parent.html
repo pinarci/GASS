@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Veli Paneli - General AI Safety Systems</title>
+  <title>Parent Dashboard - General AI Safety Systems</title>
   <style>
     * {
       margin: 0;
@@ -425,14 +425,14 @@
   <div class="header">
     <div class="header-left">
       <div class="logo">👨‍👩‍👧</div>
-      <div class="header-title">Veli Paneli</div>
+      <div class="header-title">Parent Dashboard</div>
     </div>
     <div class="header-right">
       <div class="user-info">
         <div class="user-name">{{ user_name }}</div>
         <div class="user-role">{{ current_user.role.capitalize() }}</div>
       </div>
-      <a href="/login" class="logout-btn">Çıkış</a>
+      <a href="/login" class="logout-btn">Logout</a>
     </div>
   </div>
 
@@ -442,13 +442,13 @@
     <div class="card student-status">
       <div class="card-header">
         <div class="card-icon">{% if student.gender == 'F' %}👧{% else %}👦{% endif %}</div>
-        <div class="card-title">Öğrenci Durumu</div>
+        <div class="card-title">Student Status</div>
       </div>
       <div class="student-info">
         <div class="student-avatar">{% if student.gender == 'F' %}👧{% else %}👦{% endif %}</div>
         <div class="student-details">
           <div class="student-name">{{ student.name }}</div>
-          <div class="student-class">{{ student.class }} Sınıfı</div>
+          <div class="student-class">Class {{ student.class }}</div>
           <div class="status-indicator {{ student.status_class }}">
             {% if student.status == 'At Home' %}🏠{% elif student.status == 'In the bus' %}🚌{% else %}🏫{% endif %} {{ student.status }}
           </div>
@@ -462,7 +462,7 @@
     <div class="card location-map">
       <div class="card-header">
         <div class="card-icon">🗺️</div>
-        <div class="card-title">Konum Takibi</div>
+        <div class="card-title">Location Tracking</div>
       </div>
       <div class="map-display">
         <iframe 
@@ -481,28 +481,28 @@
     <div class="card activities">
       <div class="card-header">
         <div class="card-icon">📋</div>
-        <div class="card-title">Son Aktiviteler</div>
+        <div class="card-title">Recent Activities</div>
       </div>
       <div class="activity-list">
         <div class="activity-item">
           <div class="activity-icon boarding">🚌</div>
           <div class="activity-content">
-            <div class="activity-text">{{ student.name.split()[0] }} otobüse bindi</div>
-            <div class="activity-time">Bugün 07:45</div>
+            <div class="activity-text">{{ student.name.split()[0] }} boarded the bus</div>
+            <div class="activity-time">Today 07:45</div>
           </div>
         </div>
         <div class="activity-item">
           <div class="activity-icon arrival">🏫</div>
           <div class="activity-content">
-            <div class="activity-text">Okula güvenle ulaştı</div>
-            <div class="activity-time">Bugün 08:15</div>
+            <div class="activity-text">Arrived safely at school</div>
+            <div class="activity-time">Today 08:15</div>
           </div>
         </div>
         <div class="activity-item">
           <div class="activity-icon departure">🚌</div>
           <div class="activity-content">
-            <div class="activity-text">Okuldan ayrıldı</div>
-            <div class="activity-time">Dün 15:30</div>
+            <div class="activity-text">Left school</div>
+            <div class="activity-time">Yesterday 15:30</div>
           </div>
         </div>
       </div>
@@ -513,11 +513,11 @@
   <div class="nav-tabs">
     <a href="#" class="nav-tab active">
       <span>🏠</span>
-      <span>Ana Sayfa</span>
+      <span>Home</span>
     </a>
     <a href="/messages" class="nav-tab">
       <span>💬</span>
-      <span>Mesajlar</span>
+      <span>Messages</span>
     </a>
   </div>
 
@@ -577,7 +577,7 @@
             
             // Update student info if changed
             studentNameElement.textContent = data.student.name;
-            studentClassElement.textContent = `${data.student.class} Sınıfı`;
+            studentClassElement.textContent = `Class ${data.student.class}`;
             
             console.log('Status updated:', displayStatus);
           } else {
@@ -597,7 +597,7 @@
       notification.style.display = 'block';
 
       // Add to activities list permanently and save to database
-      const activityText = `${firstName} otobüse bindi`;
+      const activityText = `${firstName} boarded the bus`;
       addActivityToList(firstName, 'boarded', activityText, true);
 
       setTimeout(() => {
@@ -628,7 +628,7 @@
       }, 30000); // 30 seconds
 
       // Add to activities list permanently and save to database
-      const activityText = `${firstName} otobüsten indi`;
+      const activityText = `${firstName} got off the bus`;
       addActivityToList(firstName, 'got_off', activityText, true);
 
       setTimeout(() => {
@@ -644,7 +644,7 @@
       let timeString, dateString;
       if (timestamp) {
         const activityDate = new Date(timestamp);
-        timeString = activityDate.toLocaleTimeString('tr-TR', { 
+        timeString = activityDate.toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit' 
         });
@@ -655,19 +655,19 @@
         const isYesterday = activityDate.toDateString() === yesterday.toDateString();
         
         if (isToday) {
-          dateString = 'Bugün';
+          dateString = 'Today';
         } else if (isYesterday) {
-          dateString = 'Dün';
+          dateString = 'Yesterday';
         } else {
-          dateString = activityDate.toLocaleDateString('tr-TR');
+          dateString = activityDate.toLocaleDateString('en-US');
         }
       } else {
         const now = new Date();
-        timeString = now.toLocaleTimeString('tr-TR', { 
+        timeString = now.toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit' 
         });
-        dateString = 'Bugün';
+        dateString = 'Today';
       }
 
       // Create new activity item
@@ -681,9 +681,9 @@
       if (activityText) {
         finalActivityText = activityText;
       } else if (activityType === 'boarded') {
-        finalActivityText = `${studentName} otobüse bindi`;
+        finalActivityText = `${studentName} boarded the bus`;
       } else if (activityType === 'got_off') {
-        finalActivityText = `${studentName} otobüsten indi`;
+        finalActivityText = `${studentName} got off the bus`;
       }
       
       if (activityType === 'boarded') {
@@ -840,7 +840,7 @@
     // Real-time clock update
     function updateTime() {
       const now = new Date();
-      const timeString = now.toLocaleTimeString('tr-TR');
+      const timeString = now.toLocaleTimeString('en-US');
       // You can add this to display current time somewhere if needed
     }
 
