@@ -8,6 +8,11 @@ from functools import wraps
 import threading
 import time
 
+import googlemaps
+import requests
+from geopy.geocoders import Nominatim
+from dotenv import load_dotenv
+
 # Project root is where this file is located
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.append(str(PROJECT_ROOT))
@@ -41,6 +46,67 @@ USERS_DB = PROJECT_ROOT / "production_users.db"
 MESSAGES_DB = PROJECT_ROOT / "messages.db"
 UPLOAD_FOLDER = PROJECT_ROOT / "static" / "uploads"
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
+
+
+load_dotenv()
+GOOGLE_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+ORS_API_KEY = os.getenv("ORS_API_KEY")
+
+# Initialize Google Maps client
+gmaps = googlemaps.Client(key=GOOGLE_API_KEY)
+
+# Add these helper functions to your main.py
+def get_google_directions(origin, destination, waypoints):
+    try:
+        directions = gmaps.directions(
+            origin,
+            destination,
+            mode="driving",
+            waypoints=waypoints,
+            optimize_waypoints=True,
+            departure_time=datetime.now()
+        )
+        if not directions:
+            return None
+        polyline = directions[0]['overview_polyline']['points']
+        duration = sum(leg['duration']['value'] for leg in directions[0]['legs'])
+        return {"source": "google", "polyline": polyline, "duration": duration}
+    except Exception as e:
+        print(f"Google Maps error: {e}")
+        return None
+
+def get_ors_directions(origin, destination, waypoints):
+    try:
+        coordinates = [origin] + waypoints + [destination] if waypoints else [origin, destination]
+        url = "https://api.openrouteservice.org/v2/directions/driving-car"
+        headers = {"Authorization": ORS_API_KEY, "Content-Type": "application/json"}
+        data = {
+            "coordinates": [],
+            "instructions": False,
+        }
+        
+        # Use geopy for geocoding
+        geolocator = Nominatim(user_agent="route_planner")
+        for address in coordinates:
+            location = geolocator.geocode(address)
+            if not location:
+                return None
+            data["coordinates"].append([location.longitude, location.latitude])
+        
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code != 200:
+            print(f"ORS error: {response.text}")
+            return None
+        
+        result = response.json()
+        polyline = result['routes'][0]['geometry']
+        duration = result['routes'][0]['summary']['duration']
+        return {"source": "ors", "polyline": polyline, "duration": duration}
+    except Exception as e:
+        print(f"ORS error: {e}")
+        return None
+
+
 
 
 class RealTimeLocationService:
@@ -691,6 +757,141 @@ def driver_dashboard():
                                'name': session['full_name'],
                                'role': session['user_role']
                            })
+
+
+
+
+
+
+
+
+
+# Update your existing driver-route route to include the API key
+@app.route("/driver-route")
+@login_required
+@role_required('driver')
+def driver_route():
+    """Driver route management page"""
+    conn = sqlite3.connect(USERS_DB)
+    cursor = conn.cursor()
+
+    # Get assigned students with their pickup addresses
+    cursor.execute('''
+        SELECT s.id, s.full_name, s.class_name, s.current_status, s.pickup_address, s.dropoff_address,
+               p.full_name as parent_name, p.phone as parent_phone
+        FROM students s
+        LEFT JOIN users p ON s.parent_id = p.id
+        WHERE s.assigned_driver_id = ? AND s.is_active = 1
+        ORDER BY s.full_name
+    ''', (session['user_id'],))
+
+    students = []
+    for student in cursor.fetchall():
+        students.append({
+            'id': student[0],
+            'name': student[1],
+            'class': student[2],
+            'status': student[3],
+            'pickup_address': student[4],
+            'dropoff_address': student[5],
+            'parent_name': student[6],
+            'parent_phone': student[7]
+        })
+
+    # Get vehicle info with current location
+    cursor.execute('''
+        SELECT id, license_plate, capacity, model, current_latitude, current_longitude, status
+        FROM vehicles WHERE driver_id = ?
+    ''', (session['user_id'],))
+
+    vehicle = cursor.fetchone()
+    vehicle_info = {
+        'id': vehicle[0] if vehicle else None,
+        'plate': vehicle[1] if vehicle else 'Araç Atanmamış',
+        'capacity': vehicle[2] if vehicle else 0,
+        'model': vehicle[3] if vehicle else 'N/A',
+        'current_location': {
+            'lat': vehicle[4], 
+            'lng': vehicle[5]
+        } if vehicle and vehicle[4] else None,
+        'status': vehicle[6] if vehicle else 'unknown'
+    }
+
+    # Get today's route history
+    cursor.execute('''
+        SELECT a.event_type, a.timestamp, s.full_name as student_name, a.location
+        FROM attendance_logs a
+        JOIN students s ON a.student_id = s.id
+        WHERE a.verified_by = ? AND DATE(a.timestamp) = DATE('now')
+        ORDER BY a.timestamp DESC
+    ''', (session['user_id'],))
+
+    route_history = []
+    for log in cursor.fetchall():
+        route_history.append({
+            'event_type': log[0],
+            'timestamp': log[1],
+            'student_name': log[2],
+            'location': log[3]
+        })
+
+    conn.close()
+    
+    return render_template("driver-route.html",
+                           user_name=session['full_name'],
+                           vehicle=vehicle_info,
+                           students=students,
+                           route_history=route_history,
+                           api_key=GOOGLE_API_KEY,  # Add this line
+                           current_user={
+                               'id': session['user_id'],
+                               'name': session['full_name'],
+                               'role': session['user_role']
+                           })
+
+# Add the route API endpoint to your main.py
+@app.route("/api/route")
+@login_required
+@role_required('driver')
+def get_best_route():
+    origin = request.args.get("origin")
+    destination = request.args.get("destination")
+    waypoints = request.args.get("waypoints")
+    
+    if not origin or not destination:
+        return jsonify({"error": "Missing origin or destination"}), 400
+    
+    waypoints_list = [w.strip() for w in waypoints.split(",")] if waypoints else []
+    
+    google_route = get_google_directions(origin, destination, waypoints_list)
+    ors_route = get_ors_directions(origin, destination, waypoints_list)
+    
+    if not google_route and not ors_route:
+        return jsonify({"error": "No route found from either API"}), 500
+    
+    best_route = min(
+        [r for r in [google_route, ors_route] if r],
+        key=lambda r: r["duration"]
+    )
+    
+    return jsonify({
+        "source": best_route["source"],
+        "polyline": best_route["polyline"],
+        "duration_seconds": best_route["duration"]
+    })
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # ==================== ADMIN ROUTES ====================
