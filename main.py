@@ -50,15 +50,17 @@ UPLOAD_FOLDER = PROJECT_ROOT / "static" / "uploads"
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 
 
+#Mustafa rota
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 ORS_API_KEY = os.getenv("ORS_API_KEY")
 
-# Initialize Google Maps client
+# Add this line:
 gmaps = googlemaps.Client(key=GOOGLE_API_KEY)
 
-# Add these helper functions to your main.py
+# Add these helper functions to your main.py (keep your existing functions and just add these)
 def get_google_directions(origin, destination, waypoints):
+    """Simple Google Maps directions - based on your working version"""
     try:
         directions = gmaps.directions(
             origin,
@@ -78,6 +80,7 @@ def get_google_directions(origin, destination, waypoints):
         return None
 
 def get_ors_directions(origin, destination, waypoints):
+    """Simple ORS directions - based on your working version"""
     try:
         coordinates = [origin] + waypoints + [destination] if waypoints else [origin, destination]
         url = "https://api.openrouteservice.org/v2/directions/driving-car"
@@ -87,13 +90,18 @@ def get_ors_directions(origin, destination, waypoints):
             "instructions": False,
         }
         
-        # Use geopy for geocoding
-        geolocator = Nominatim(user_agent="route_planner")
+        # Use geopy for geocoding with longer timeout
+        geolocator = Nominatim(user_agent="route_planner", timeout=10)
         for address in coordinates:
-            location = geolocator.geocode(address)
-            if not location:
+            try:
+                location = geolocator.geocode(address, timeout=10)
+                if not location:
+                    print(f"Could not geocode: {address}")
+                    return None
+                data["coordinates"].append([location.longitude, location.latitude])
+            except Exception as geo_error:
+                print(f"Geocoding error for {address}: {geo_error}")
                 return None
-            data["coordinates"].append([location.longitude, location.latitude])
         
         response = requests.post(url, headers=headers, json=data)
         if response.status_code != 200:
@@ -107,7 +115,7 @@ def get_ors_directions(origin, destination, waypoints):
     except Exception as e:
         print(f"ORS error: {e}")
         return None
-
+#Mustafa rota
 
 
 
@@ -761,6 +769,7 @@ def driver_dashboard():
 
 
 
+#Mustafa rota
 # Update your existing driver-route route to include the API key
 @app.route("/driver-route")
 @login_required
@@ -837,43 +846,110 @@ def driver_route():
                            vehicle=vehicle_info,
                            students=students,
                            route_history=route_history,
-                           api_key=GOOGLE_API_KEY,  # Add this line
+                           api_key="AIzaSyBnMCJBIa3Nld1h7SeIbPj1NV58FmAkZ_c",  # Add this line
                            current_user={
                                'id': session['user_id'],
                                'name': session['full_name'],
                                'role': session['user_role']
                            })
 
+# Add this new route to your main.py file
+
+@app.route("/api/students")
+@login_required
+@role_required('driver')
+def get_students():
+    """Get students assigned to the current driver"""
+    conn = sqlite3.connect(USERS_DB)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT s.id, s.full_name, s.pickup_address, s.dropoff_address, s.class_name
+        FROM students s
+        WHERE s.assigned_driver_id = ? AND s.is_active = 1
+        ORDER BY s.full_name
+    ''', (session['user_id'],))
+    
+    students = []
+    for student in cursor.fetchall():
+        students.append({
+            'id': student[0],
+            'name': student[1],
+            'pickup_address': student[2],
+            'dropoff_address': student[3],
+            'class_name': student[4]
+        })
+    
+    conn.close()
+    return jsonify(students)
+
+# Also add a route to get all unique addresses for autocomplete
+@app.route("/api/addresses")
+@login_required
+@role_required('driver')
+def get_addresses():
+    """Get all unique addresses for autocomplete"""
+    conn = sqlite3.connect(USERS_DB)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT DISTINCT pickup_address FROM students 
+        WHERE assigned_driver_id = ? AND is_active = 1 AND pickup_address IS NOT NULL
+        UNION
+        SELECT DISTINCT dropoff_address FROM students 
+        WHERE assigned_driver_id = ? AND is_active = 1 AND dropoff_address IS NOT NULL
+        ORDER BY pickup_address
+    ''', (session['user_id'], session['user_id']))
+    
+    addresses = [row[0] for row in cursor.fetchall() if row[0]]
+    conn.close()
+    return jsonify(addresses)
+
 # Add the route API endpoint to your main.py
 @app.route("/api/route")
 @login_required
 @role_required('driver')
 def get_best_route():
+    """Simple route API - based on your working version"""
     origin = request.args.get("origin")
     destination = request.args.get("destination")
     waypoints = request.args.get("waypoints")
-
+    
     if not origin or not destination:
         return jsonify({"error": "Missing origin or destination"}), 400
-
-    waypoints_list = [w.strip() for w in waypoints.split(",")] if waypoints else []
-
+    
+    # Parse waypoints - keep it simple
+    waypoints_list = []
+    if waypoints:
+        waypoints_list = [w.strip() for w in waypoints.split(",") if w.strip()]
+    
+    print(f"Route request - Origin: {origin}, Destination: {destination}, Waypoints: {waypoints_list}")
+    
+    # Try both APIs
     google_route = get_google_directions(origin, destination, waypoints_list)
     ors_route = get_ors_directions(origin, destination, waypoints_list)
-
+    
+    # Return the best route or error
     if not google_route and not ors_route:
         return jsonify({"error": "No route found from either API"}), 500
-
+    
+    # Choose the best route (shortest duration)
     best_route = min(
         [r for r in [google_route, ors_route] if r],
         key=lambda r: r["duration"]
     )
-
+    
     return jsonify({
         "source": best_route["source"],
         "polyline": best_route["polyline"],
-        "duration_seconds": best_route["duration"]
+        "duration_seconds": best_route["duration"],
+        "duration_minutes": round(best_route["duration"] / 60, 1)
     })
+
+#Mustafa rota
+
+
+
 
 
 # Replace the student API routes in your main.py with these enhanced versions:
