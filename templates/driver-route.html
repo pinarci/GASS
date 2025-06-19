@@ -78,108 +78,6 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      justify-content: space-between;
-    }
-
-    .waypoints-controls {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .toggle-students-btn {
-      background: linear-gradient(135deg, #FF6B6B, #FF8E53);
-      color: white;
-      border: none;
-      padding: 8px 15px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      transition: all 0.3s ease;
-      min-width: 120px;
-      justify-content: center;
-    }
-
-    .toggle-students-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
-    }
-
-    .toggle-students-btn.active {
-      background: linear-gradient(135deg, #4CAF50, #45a049);
-    }
-
-    .students-panel {
-      background: #f0f8ff;
-      border-radius: 12px;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-left: 4px solid #667eea;
-      display: none;
-    }
-
-    .students-panel.show {
-      display: block;
-      animation: slideDown 0.3s ease;
-    }
-
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        max-height: 0;
-      }
-      to {
-        opacity: 1;
-        max-height: 300px;
-      }
-    }
-
-    .students-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .student-card {
-      background: white;
-      padding: 12px;
-      border-radius: 8px;
-      border: 2px solid transparent;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .student-card:hover {
-      border-color: #667eea;
-      transform: translateY(-2px);
-    }
-
-    .student-card.selected {
-      border-color: #4CAF50;
-      background: #f0fff0;
-    }
-
-    .student-name {
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 5px;
-    }
-
-    .student-address {
-      font-size: 12px;
-      color: #666;
-      margin-bottom: 3px;
-    }
-
-    .student-class {
-      font-size: 11px;
-      color: #999;
     }
 
     .waypoint-item-container {
@@ -418,22 +316,13 @@
       .button-group {
         grid-template-columns: 1fr;
       }
-
+      
       .btn-primary {
         grid-column: span 1;
       }
-
+      
       .header h1 {
         font-size: 2em;
-      }
-
-      .waypoints-controls {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .students-grid {
-        grid-template-columns: 1fr;
       }
     }
 
@@ -479,46 +368,25 @@
           </div>
         </div>
 
+
+<!-- Add this after the origin input-group div -->
+<div class="input-group">
+  <div class="student-selection-container">
+    <label for="studentSelect" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+      👥 Select Student (Optional)
+    </label>
+    <select id="studentSelect" onchange="handleStudentSelection()" style="width: 100%; padding: 15px 20px; border: none; border-radius: 12px; background: #f8f9fa; font-size: 16px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+      <option value="">-- Select a student --</option>
+    </select>
+  </div>
+</div>
+
+
+        
         <div class="waypoints-section">
           <div class="waypoints-title">
             🛣️ Waypoints
-            <div class="waypoints-controls">
-              <button type="button" class="toggle-students-btn" id="toggleStudentsBtn" onclick="toggleStudentAddresses()">
-                👥 Load Students
-              </button>
-            </div>
           </div>
-
-          <!-- Student Selection Panel -->
-          <div class="students-panel" id="studentsPanel">
-            <div style="margin-bottom: 10px;">
-              <strong>📚 Select Student Pickup Addresses:</strong>
-              <div style="font-size: 12px; color: #666; margin-top: 3px;">
-                Click on students to add their addresses as waypoints
-              </div>
-            </div>
-            <div class="students-grid" id="studentsGrid">
-              <!-- Students will be loaded here -->
-            </div>
-            <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
-              <button type="button" onclick="selectAllStudents()" style="background: #4CAF50; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-size: 12px; cursor: pointer;">
-                ✅ Select All
-              </button>
-              <button type="button" onclick="clearAllStudents()" style="background: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-size: 12px; cursor: pointer;">
-                ❌ Clear All
-              </button>
-              <button type="button" onclick="addSelectedStudents()" style="background: #667eea; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-size: 12px; cursor: pointer;">
-                ➕ Add Selected
-              </button>
-              <button type="button" onclick="debugDatabases()" style="background: #FF9800; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-size: 12px; cursor: pointer;">
-                🔧 Debug DB
-              </button>
-              <button type="button" onclick="debugParentsTable()" style="background: #9C27B0; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-size: 12px; cursor: pointer;">
-                🔍 Inspect Table
-              </button>
-            </div>
-          </div>
-
           <div id="waypointsContainer">
             <!-- Waypoints will be added here dynamically -->
           </div>
@@ -533,7 +401,7 @@
             <div class="autocomplete-suggestions"></div>
           </div>
         </div>
-
+        
         <div class="button-group">
           <button type="submit" class="btn-primary">🚀 Calculate Best Route</button>
           <button type="button" class="btn-secondary" onclick="toggleTracking()">
@@ -587,8 +455,6 @@
     let routeData = null;
     let locationHistory = [];
     let waypointCounter = 0;
-    let studentsData = [];
-    let selectedStudents = new Set();
     const MAX_HISTORY = 50;
 
     // Initialize Google Map with enhanced styling
@@ -623,316 +489,37 @@
         fullscreenControl: true,
         zoomControl: true
       });
-
+      
       // Initialize autocomplete after map is loaded
       setTimeout(() => {
         initAutocomplete();
       }, 1000);
-
+      
       startTracking();
     }
 
-    // Student address management functions
-    async function toggleStudentAddresses() {
-      const panel = document.getElementById('studentsPanel');
-      const btn = document.getElementById('toggleStudentsBtn');
-
-      if (panel.classList.contains('show')) {
-        panel.classList.remove('show');
-        btn.textContent = '👥 Load Students';
-        btn.classList.remove('active');
-      } else {
-        if (studentsData.length === 0) {
-          await loadStudentAddresses();
-        }
-        panel.classList.add('show');
-        btn.textContent = '👥 Hide Students';
-        btn.classList.add('active');
-      }
-    }
-
-    async function loadStudentAddresses() {
-      try {
-        console.log('🔍 Loading student addresses...');
-
-        // Try to load from main database first
-        let response = await fetch('/api/get-student-addresses');
-        let data = await response.json();
-
-        console.log('📊 Main database response:', data);
-
-        if (!data.success || (data.students && data.students.length === 0)) {
-          console.log('⚠️ No students found in main database, trying parents.db...');
-
-          // Fallback to parents.db
-          response = await fetch('/api/get-parent-addresses');
-          data = await response.json();
-
-          console.log('📊 Parents database response:', data);
-
-          if (data.success && data.addresses && data.addresses.length > 0) {
-            // Convert parent addresses to student format
-            studentsData = data.addresses.map((parent, index) => ({
-              id: `parent_${index}`,
-              name: parent.name,
-              address: parent.address,
-              class: parent.class || 'N/A',
-              status: parent.status || 'available',
-              parent_name: parent.name,
-              parent_phone: parent.phone
-            }));
-            console.log('✅ Loaded from parents.db:', studentsData);
-          } else {
-            // If still no data, offer to create sample data
-            console.log('⚠️ No data found anywhere, offering to create sample data...');
-            const createSample = confirm('❌ No student data found!\n\nWould you like me to create some sample students for testing?');
-
-            if (createSample) {
-              await createSampleStudents();
-              return; // Will reload after creation
-            } else {
-              // Create some demo data in memory
-              studentsData = [
-                {
-                  id: 'demo_1',
-                  name: 'Ayşe Yılmaz',
-                  address: 'Kızılay Mahallesi, Atatürk Bulvarı No:15, Çankaya/Ankara',
-                  class: '4-A',
-                  status: 'available',
-                  parent_name: 'Mehmet Yılmaz',
-                  parent_phone: '0555 123 4567'
-                },
-                {
-                  id: 'demo_2',
-                  name: 'Can Özkan',
-                  address: 'Bahçelievler Mahallesi, Eskişehir Yolu No:22, Yenimahalle/Ankara',
-                  class: '3-B',
-                  status: 'available',
-                  parent_name: 'Fatma Özkan',
-                  parent_phone: '0555 234 5678'
-                },
-                {
-                  id: 'demo_3',
-                  name: 'Zeynep Demir',
-                  address: 'Çayyolu Mahallesi, Alacaatlı Caddesi No:8, Çankaya/Ankara',
-                  class: '5-C',
-                  status: 'available',
-                  parent_name: 'Ali Demir',
-                  parent_phone: '0555 345 6789'
-                }
-              ];
-              console.log('💡 Using demo data:', studentsData);
-            }
-          }
-        } else {
-          studentsData = data.students;
-          console.log('✅ Loaded from main database:', studentsData);
-        }
-
-        renderStudentsGrid();
-
-        if (studentsData.length > 0) {
-          alert(`✅ Loaded ${studentsData.length} students successfully!`);
-        }
-
-      } catch (error) {
-        console.error('❌ Error loading student addresses:', error);
-        alert('❌ Network error while loading students: ' + error.message);
-      }
-    }
-
-    async function debugParentsTable() {
-      try {
-        console.log('🔍 Inspecting PARENTS table structure...');
-        const response = await fetch('/api/debug-parents-table');
-        const data = await response.json();
-
-        console.log('🔍 Table inspection results:', data);
-
-        if (data.success) {
-          let message = '🔍 PARENTS Table Structure:\n\n';
-
-          message += '📊 Columns:\n';
-          data.columns.forEach((col, i) => {
-            message += `   ${i+1}. ${col[1]} (${col[2]})\n`;
-          });
-
-          message += `\n📈 Total Records: ${data.total_records}\n`;
-
-          message += '\n📄 Sample Data:\n';
-          data.sample_records.forEach((record, i) => {
-            message += `   Record ${i+1}: `;
-            record.forEach((field, j) => {
-              message += `${data.column_names[j]}="${field}" | `;
-            });
-            message += '\n';
-          });
-
-          alert(message);
-
-          // If we found the issue, suggest a fix
-          if (!data.column_names.includes('address') && data.column_names.includes('Address')) {
-            alert('💡 Found the issue! Your column is named "Address" (capital A) but we\'re looking for "address" (lowercase).\n\nTrying to reload with correct column name...');
-            await loadStudentAddresses();
-          }
-
-        } else {
-          alert('❌ Table inspection failed: ' + data.error);
-        }
-      } catch (error) {
-        console.error('❌ Inspection error:', error);
-        alert('❌ Inspection request failed: ' + error.message);
-      }
-    }
-
-    async function createSampleStudents() {
-      try {
-        console.log('🔧 Creating sample students...');
-        const response = await fetch('/api/create-sample-students');
-        const data = await response.json();
-
-        console.log('🔧 Sample creation response:', data);
-
-        if (data.success) {
-          alert('✅ ' + data.message + '\nReloading student data...');
-          studentsData = []; // Clear cache
-          await loadStudentAddresses(); // Reload
-        } else {
-          alert('⚠️ ' + (data.message || data.error));
-        }
-      } catch (error) {
-        console.error('❌ Error creating sample students:', error);
-        alert('❌ Could not create sample students: ' + error.message);
-      }
-    }
-
-    function renderStudentsGrid() {
-      const grid = document.getElementById('studentsGrid');
-      grid.innerHTML = '';
-
-      console.log('🎨 Rendering students grid with', studentsData.length, 'students');
-
-      if (studentsData.length === 0) {
-        grid.innerHTML = `
-          <div style="grid-column: 1/-1; text-align: center; padding: 20px; color: #666;">
-            <div style="font-size: 48px; margin-bottom: 10px;">😔</div>
-            <div style="font-size: 16px; font-weight: 600; margin-bottom: 10px;">No Students Found</div>
-            <div style="font-size: 14px; line-height: 1.4;">
-              • Check if you're logged in as a driver<br>
-              • Ensure students are assigned to your vehicle<br>
-              • Try refreshing the page<br>
-              • Contact admin if the issue persists
-            </div>
-            <button onclick="createSampleStudents()" style="
-              margin-top: 15px;
-              background: #4CAF50;
-              color: white;
-              border: none;
-              padding: 10px 20px;
-              border-radius: 8px;
-              cursor: pointer;
-              font-size: 14px;
-            ">
-              🔧 Create Sample Students
-            </button>
-          </div>
-        `;
-        return;
-      }
-
-      studentsData.forEach(student => {
-        const card = document.createElement('div');
-        card.className = 'student-card';
-        card.dataset.studentId = student.id;
-
-        card.innerHTML = `
-          <div class="student-name">${student.name}</div>
-          <div class="student-address">📍 ${student.address}</div>
-          <div class="student-class">📚 ${student.class} | 📞 ${student.parent_phone || 'N/A'}</div>
-        `;
-
-        card.addEventListener('click', () => toggleStudentSelection(student.id));
-        grid.appendChild(card);
-      });
-
-      console.log('✅ Grid rendered successfully');
-    }
-
-    function toggleStudentSelection(studentId) {
-      const card = document.querySelector(`[data-student-id="${studentId}"]`);
-
-      if (selectedStudents.has(studentId)) {
-        selectedStudents.delete(studentId);
-        card.classList.remove('selected');
-      } else {
-        selectedStudents.add(studentId);
-        card.classList.add('selected');
-      }
-    }
-
-    function selectAllStudents() {
-      studentsData.forEach(student => {
-        selectedStudents.add(student.id);
-        const card = document.querySelector(`[data-student-id="${student.id}"]`);
-        if (card) card.classList.add('selected');
-      });
-    }
-
-    function clearAllStudents() {
-      selectedStudents.clear();
-      document.querySelectorAll('.student-card').forEach(card => {
-        card.classList.remove('selected');
-      });
-    }
-
-    function addSelectedStudents() {
-      if (selectedStudents.size === 0) {
-        alert('Please select at least one student first');
-        return;
-      }
-
-      const selectedData = studentsData.filter(student => selectedStudents.has(student.id));
-
-      selectedData.forEach(student => {
-        addWaypointWithAddress(student.address, `${student.name} - ${student.address}`);
-      });
-
-      // Clear selection and hide panel
-      clearAllStudents();
-      document.getElementById('studentsPanel').classList.remove('show');
-      document.getElementById('toggleStudentsBtn').textContent = '👥 Load Students';
-      document.getElementById('toggleStudentsBtn').classList.remove('active');
-
-      alert(`✅ Added ${selectedData.length} student pickup addresses as waypoints`);
-    }
-
-    function addWaypointWithAddress(address, placeholder = '') {
+    // Waypoint management functions
+    function addWaypoint() {
       waypointCounter++;
       const container = document.getElementById('waypointsContainer');
-
+      
       const waypointDiv = document.createElement('div');
       waypointDiv.className = 'waypoint-item-container';
       waypointDiv.id = `waypoint-${waypointCounter}`;
-
+      
       waypointDiv.innerHTML = `
         <div class="waypoint-number">${getNextWaypointNumber()}</div>
         <div class="autocomplete-container">
-          <input type="text" class="waypoint-input" placeholder="${placeholder || 'Enter waypoint address...'}"
-                 value="${address}"
-                 oninput="handleAutocomplete(this)"
+          <input type="text" class="waypoint-input" placeholder="Enter waypoint address..." 
+                 oninput="enhancedHandleAutocomplete(this)" 
                  onfocus="showSuggestions(this)"
                  onblur="hideSuggestions(this)" />
           <div class="autocomplete-suggestions"></div>
         </div>
         <button type="button" class="remove-waypoint" onclick="removeWaypoint(${waypointCounter})">×</button>
       `;
-
+      
       container.appendChild(waypointDiv);
-    }
-
-    // Waypoint management functions
-    function addWaypoint() {
-      addWaypointWithAddress('');
     }
 
     function removeWaypoint(id) {
@@ -974,32 +561,39 @@
     function initAutocomplete() {
       autocompleteService = new google.maps.places.AutocompleteService();
       placesService = new google.maps.places.PlacesService(map);
-
+      
       // Add autocomplete to origin and destination inputs
       setupInputAutocomplete(document.getElementById('origin'));
       setupInputAutocomplete(document.getElementById('destination'));
     }
 
-    function setupInputAutocomplete(input) {
-      const container = input.parentNode;
-      if (!container.querySelector('.autocomplete-suggestions')) {
-        const suggestionsDiv = document.createElement('div');
-        suggestionsDiv.className = 'autocomplete-suggestions';
-        container.style.position = 'relative';
-        container.appendChild(suggestionsDiv);
+ // Update the setupInputAutocomplete function to use enhanced autocomplete
+function setupInputAutocomplete(input) {
+  const container = input.parentNode;
+  if (!container.querySelector('.autocomplete-suggestions')) {
+    const suggestionsDiv = document.createElement('div');
+    suggestionsDiv.className = 'autocomplete-suggestions';
+    container.style.position = 'relative';
+    container.appendChild(suggestionsDiv);
+    
+    // Use enhanced autocomplete instead of regular
+    input.addEventListener('input', () => enhancedHandleAutocomplete(input));
+    input.addEventListener('focus', () => showSuggestions(input));
+    input.addEventListener('blur', (e) => {
+      setTimeout(() => hideSuggestions(input), 150);
+    });
+  }
+}
 
-        input.addEventListener('input', () => handleAutocomplete(input));
-        input.addEventListener('focus', () => showSuggestions(input));
-        input.addEventListener('blur', (e) => {
-          setTimeout(() => hideSuggestions(input), 150); // Delay to allow click on suggestion
-        });
-      }
-    }
+// Also update the waypoint input creation in addWaypoint function
+// Replace the oninput attribute:
+// From: oninput="handleAutocomplete(this)"
+// To: oninput="enhancedHandleAutocomplete(this)"
 
     function handleAutocomplete(input) {
       const query = input.value.trim();
       const suggestionsDiv = input.parentNode.querySelector('.autocomplete-suggestions');
-
+      
       if (query.length < 2) {
         suggestionsDiv.style.display = 'none';
         return;
@@ -1027,29 +621,29 @@
 
     function showPredictions(input, predictions) {
       const suggestionsDiv = input.parentNode.querySelector('.autocomplete-suggestions');
-
+      
       suggestionsDiv.innerHTML = '';
-
+      
       predictions.slice(0, 5).forEach(prediction => {
         const suggestionDiv = document.createElement('div');
         suggestionDiv.className = 'autocomplete-suggestion';
-
+        
         const mainText = prediction.structured_formatting.main_text;
         const secondaryText = prediction.structured_formatting.secondary_text;
-
+        
         suggestionDiv.innerHTML = `
           <div class="main-text">${mainText}</div>
           <div class="secondary-text">${secondaryText}</div>
         `;
-
+        
         suggestionDiv.addEventListener('click', () => {
           input.value = prediction.description;
           suggestionsDiv.style.display = 'none';
         });
-
+        
         suggestionsDiv.appendChild(suggestionDiv);
       });
-
+      
       suggestionsDiv.style.display = 'block';
     }
 
@@ -1070,7 +664,7 @@
     // Enhanced user location marker with smooth movement
     function updateUserMarker(position, speed, heading) {
       const location = { lat: position.lat, lng: position.lng };
-
+      
       locationHistory.push(location);
       if (locationHistory.length > MAX_HISTORY) {
         locationHistory.shift();
@@ -1124,18 +718,18 @@
         if (step <= steps) {
           const lat = currentPos.lat() + (newPosition.lat - currentPos.lat()) * (step / steps);
           const lng = currentPos.lng() + (newPosition.lng - currentPos.lng()) * (step / steps);
-
+          
           marker.setPosition({ lat, lng });
-
+          
           const icon = marker.getIcon();
           icon.rotation = heading;
           marker.setIcon(icon);
-
+          
           step++;
           requestAnimationFrame(animate);
         }
       };
-
+      
       animate();
     }
 
@@ -1169,7 +763,7 @@
         },
         zIndex: number === 'A' ? 1001 : (number === 'B' ? 1002 : 999)
       });
-
+      
       markers.push(marker);
       return marker;
     }
@@ -1187,7 +781,7 @@
 
       // Use Google Geocoding API
       const geocoder = new google.maps.Geocoder();
-
+      
       return new Promise((resolve, reject) => {
         geocoder.geocode({ address: address }, (results, status) => {
           if (status === 'OK' && results[0]) {
@@ -1236,7 +830,7 @@
       try {
         // Get all coordinates for proper routing order
         const allCoordinates = [];
-
+        
         // Origin
         let originLatLng;
         if (origin.toLowerCase() === 'current' && currentLocation) {
@@ -1262,7 +856,7 @@
 
         // Order waypoints based on their proximity to the route path
         const orderedWaypoints = orderWaypointsByRoute(decodedPath, allCoordinates);
-
+        
         // Create markers in route order
         orderedWaypoints.forEach((item, index) => {
           if (item.type === 'origin') {
@@ -1295,12 +889,12 @@
     // Order waypoints based on their position along the route
     function orderWaypointsByRoute(routePath, coordinates) {
       const orderedCoords = [...coordinates];
-
+      
       // Separate waypoints from origin/destination
       const waypoints = orderedCoords.filter(item => item.type === 'waypoint');
       const origin = orderedCoords.find(item => item.type === 'origin');
       const destination = orderedCoords.find(item => item.type === 'destination');
-
+      
       if (waypoints.length === 0) {
         return [origin, destination].filter(Boolean);
       }
@@ -1309,25 +903,25 @@
       waypoints.forEach(waypoint => {
         let minDistance = Infinity;
         let closestSegmentIndex = 0;
-
+        
         // Find closest point on route path
         for (let i = 0; i < routePath.length - 1; i++) {
           const segmentStart = routePath[i];
           const segmentEnd = routePath[i + 1];
           const distance = distanceToLineSegment(waypoint.coord, segmentStart, segmentEnd);
-
+          
           if (distance < minDistance) {
             minDistance = distance;
             closestSegmentIndex = i;
           }
         }
-
+        
         waypoint.routePosition = closestSegmentIndex;
       });
 
       // Sort waypoints by their position along the route
       waypoints.sort((a, b) => a.routePosition - b.routePosition);
-
+      
       // Return ordered array
       return [origin, ...waypoints, destination].filter(Boolean);
     }
@@ -1341,11 +935,11 @@
 
       const dot = A * C + B * D;
       const lenSq = C * C + D * D;
-
+      
       if (lenSq === 0) {
         return Math.sqrt(A * A + B * B);
       }
-
+      
       const param = dot / lenSq;
       let xx, yy;
 
@@ -1369,11 +963,11 @@
     function updateUIWaypointNumbers(orderedWaypoints) {
       const waypointContainers = document.querySelectorAll('.waypoint-item-container');
       const waypointInputs = document.querySelectorAll('.waypoint-input');
-
+      
       // Create mapping of addresses to route order
       const addressToRouteOrder = {};
       let waypointCounter = 1;
-
+      
       orderedWaypoints.forEach(item => {
         if (item.type === 'waypoint') {
           addressToRouteOrder[item.address] = waypointCounter++;
@@ -1385,7 +979,7 @@
         const input = container.querySelector('.waypoint-input');
         const numberElement = container.querySelector('.waypoint-number');
         const address = input.value.trim();
-
+        
         if (address && addressToRouteOrder[address]) {
           numberElement.textContent = addressToRouteOrder[address];
           numberElement.style.background = '#FF9800'; // Orange for route-ordered waypoints
@@ -1400,7 +994,7 @@
     function updateRouteSummary(source, origin, destination, waypoints) {
       const summary = document.getElementById('routeSummary');
       const details = document.getElementById('routeDetails');
-
+      
       let waypointHtml = '';
       if (waypoints && waypoints.length > 0) {
         waypoints.forEach((wp, index) => {
@@ -1412,7 +1006,7 @@
           `;
         });
       }
-
+      
       details.innerHTML = `
         <p><strong>Route Provider:</strong> ${source.toUpperCase()}</p>
         <div style="margin-top: 10px;">
@@ -1427,17 +1021,17 @@
           </div>
         </div>
       `;
-
+      
       summary.style.display = 'block';
     }
 
     // Enhanced form submission
     document.getElementById("routeForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-
+      
       const loadingIndicator = document.getElementById('loadingIndicator');
       const form = document.getElementById('routeForm');
-
+      
       loadingIndicator.style.display = 'block';
       form.style.opacity = '0.5';
 
@@ -1479,6 +1073,282 @@
       }
     });
 
+
+
+
+
+
+
+// Add these variables at the top with other variables
+let studentsData = [];
+let addressesData = [];
+
+// Load students data when page initializes
+async function loadStudentsData() {
+  try {
+    const response = await fetch('/api/students');
+    if (response.ok) {
+      studentsData = await response.json();
+      populateStudentSelect();
+    }
+  } catch (error) {
+    console.error('Error loading students:', error);
+  }
+}
+
+// Load addresses for enhanced autocomplete
+async function loadAddressesData() {
+  try {
+    const response = await fetch('/api/addresses');
+    if (response.ok) {
+      addressesData = await response.json();
+    }
+  } catch (error) {
+    console.error('Error loading addresses:', error);
+  }
+}
+
+// Populate student select dropdown
+function populateStudentSelect() {
+  const select = document.getElementById('studentSelect');
+  select.innerHTML = '<option value="">-- Select a student --</option>';
+  
+  studentsData.forEach(student => {
+    const option = document.createElement('option');
+    option.value = student.id;
+    option.textContent = `${student.name} (${student.class_name})`;
+    option.dataset.pickupAddress = student.pickup_address;
+    option.dataset.dropoffAddress = student.dropoff_address;
+    select.appendChild(option);
+  });
+}
+
+// Handle student selection
+function handleStudentSelection() {
+  const select = document.getElementById('studentSelect');
+  const selectedOption = select.options[select.selectedIndex];
+  
+  if (selectedOption.value) {
+    const pickupAddress = selectedOption.dataset.pickupAddress;
+    const dropoffAddress = selectedOption.dataset.dropoffAddress;
+    
+    // Auto-fill destination with pickup address
+    if (pickupAddress) {
+      document.getElementById('destination').value = pickupAddress;
+    }
+    
+    // Show both addresses in a info box
+    showStudentAddressInfo(selectedOption.textContent, pickupAddress, dropoffAddress);
+  } else {
+    hideStudentAddressInfo();
+  }
+}
+
+// Show student address information
+function showStudentAddressInfo(studentName, pickupAddress, dropoffAddress) {
+  // Remove existing info if any
+  hideStudentAddressInfo();
+  
+  const infoDiv = document.createElement('div');
+  infoDiv.id = 'studentAddressInfo';
+  infoDiv.style.cssText = `
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 10px;
+    border-left: 4px solid #2196F3;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  `;
+  
+  infoDiv.innerHTML = `
+    <div style="font-weight: 600; color: #1976D2; margin-bottom: 8px;">
+      📚 ${studentName}
+    </div>
+    <div style="margin-bottom: 5px;">
+      <strong>🏠 Pickup:</strong> ${pickupAddress || 'Not specified'}
+    </div>
+    <div>
+      <strong>🎯 Dropoff:</strong> ${dropoffAddress || 'Not specified'}
+    </div>
+    <div style="margin-top: 10px; font-size: 14px; color: #666;">
+      <button onclick="useAsWaypoint('${pickupAddress}')" style="background: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 6px; margin-right: 10px; cursor: pointer;">
+        Add Pickup as Waypoint
+      </button>
+      <button onclick="setAsDestination('${dropoffAddress}')" style="background: #FF9800; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer;">
+        Set Dropoff as Destination
+      </button>
+    </div>
+  `;
+  
+  const studentContainer = document.querySelector('.student-selection-container');
+  studentContainer.appendChild(infoDiv);
+}
+
+// Hide student address information
+function hideStudentAddressInfo() {
+  const existingInfo = document.getElementById('studentAddressInfo');
+  if (existingInfo) {
+    existingInfo.remove();
+  }
+}
+
+// Use address as waypoint
+function useAsWaypoint(address) {
+  if (address && address !== 'Not specified') {
+    addWaypoint();
+    // Get the last added waypoint input and set its value
+    const waypointInputs = document.querySelectorAll('.waypoint-input');
+    const lastInput = waypointInputs[waypointInputs.length - 1];
+    if (lastInput) {
+      lastInput.value = address;
+    }
+  }
+}
+
+// Set as destination
+function setAsDestination(address) {
+  if (address && address !== 'Not specified') {
+    document.getElementById('destination').value = address;
+  }
+}
+
+// Enhanced autocomplete that includes database addresses
+function enhancedHandleAutocomplete(input) {
+  const query = input.value.trim().toLowerCase();
+  const suggestionsDiv = input.parentNode.querySelector('.autocomplete-suggestions');
+  
+  if (query.length < 2) {
+    suggestionsDiv.style.display = 'none';
+    return;
+  }
+
+  // Filter database addresses first
+  const dbMatches = addressesData.filter(address => 
+    address.toLowerCase().includes(query)
+  ).slice(0, 3);
+
+  // If we have database matches, show them first
+  if (dbMatches.length > 0) {
+    showDatabaseSuggestions(input, dbMatches);
+  }
+
+  // Also get Google suggestions
+  if (autocompleteService) {
+    const request = {
+      input: query,
+      types: ['establishment', 'geocode'],
+      componentRestrictions: { country: 'tr' }
+    };
+
+    autocompleteService.getPlacePredictions(request, (predictions, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+        // Combine database and Google suggestions
+        const combinedSuggestions = [...dbMatches, ...predictions.slice(0, 3)];
+        showCombinedSuggestions(input, dbMatches, predictions.slice(0, 3));
+      }
+    });
+  }
+}
+
+// Show database address suggestions
+function showDatabaseSuggestions(input, dbMatches) {
+  const suggestionsDiv = input.parentNode.querySelector('.autocomplete-suggestions');
+  
+  suggestionsDiv.innerHTML = '';
+  
+  dbMatches.forEach(address => {
+    const suggestionDiv = document.createElement('div');
+    suggestionDiv.className = 'autocomplete-suggestion';
+    suggestionDiv.style.borderLeft = '3px solid #4CAF50';
+    
+    suggestionDiv.innerHTML = `
+      <div class="main-text">📍 ${address}</div>
+      <div class="secondary-text">From your students database</div>
+    `;
+    
+    suggestionDiv.addEventListener('click', () => {
+      input.value = address;
+      suggestionsDiv.style.display = 'none';
+    });
+    
+    suggestionsDiv.appendChild(suggestionDiv);
+  });
+  
+  suggestionsDiv.style.display = 'block';
+}
+
+// Show combined suggestions
+function showCombinedSuggestions(input, dbMatches, googlePredictions) {
+  const suggestionsDiv = input.parentNode.querySelector('.autocomplete-suggestions');
+  
+  suggestionsDiv.innerHTML = '';
+  
+  // Add database matches first
+  dbMatches.forEach(address => {
+    const suggestionDiv = document.createElement('div');
+    suggestionDiv.className = 'autocomplete-suggestion';
+    suggestionDiv.style.borderLeft = '3px solid #4CAF50';
+    
+    suggestionDiv.innerHTML = `
+      <div class="main-text">📍 ${address}</div>
+      <div class="secondary-text">From students database</div>
+    `;
+    
+    suggestionDiv.addEventListener('click', () => {
+      input.value = address;
+      suggestionsDiv.style.display = 'none';
+    });
+    
+    suggestionsDiv.appendChild(suggestionDiv);
+  });
+  
+  // Add separator if both exist
+  if (dbMatches.length > 0 && googlePredictions.length > 0) {
+    const separator = document.createElement('div');
+    separator.style.cssText = 'border-top: 1px solid #eee; margin: 5px 0; padding: 5px 15px; font-size: 12px; color: #666; background: #f9f9f9;';
+    separator.textContent = 'Google Places';
+    suggestionsDiv.appendChild(separator);
+  }
+  
+  // Add Google predictions
+  googlePredictions.forEach(prediction => {
+    const suggestionDiv = document.createElement('div');
+    suggestionDiv.className = 'autocomplete-suggestion';
+    
+    const mainText = prediction.structured_formatting.main_text;
+    const secondaryText = prediction.structured_formatting.secondary_text;
+    
+    suggestionDiv.innerHTML = `
+      <div class="main-text">${mainText}</div>
+      <div class="secondary-text">${secondaryText}</div>
+    `;
+    
+    suggestionDiv.addEventListener('click', () => {
+      input.value = prediction.description;
+      suggestionsDiv.style.display = 'none';
+    });
+    
+    suggestionsDiv.appendChild(suggestionDiv);
+  });
+  
+  suggestionsDiv.style.display = 'block';
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // Enhanced location tracking
     function startTracking() {
       if (!navigator.geolocation) {
@@ -1495,16 +1365,16 @@
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const { latitude, longitude, speed, heading, accuracy } = pos.coords;
-
+          
           updateUserMarker(
             { lat: latitude, lng: longitude, accuracy },
             speed,
             heading
           );
 
-          document.getElementById("speedDisplay").textContent =
+          document.getElementById("speedDisplay").textContent = 
             `${speed ? (speed * 3.6).toFixed(1) : 0} km/h`;
-          document.getElementById("bearingDisplay").textContent =
+          document.getElementById("bearingDisplay").textContent = 
             `${heading ? Math.round(heading) : 0}°`;
 
           if (tracking && currentLocation) {
@@ -1524,7 +1394,7 @@
     function toggleTracking() {
       tracking = !tracking;
       const indicator = document.getElementById("trackingIndicator");
-
+      
       if (tracking) {
         indicator.textContent = "🔴 GPS Tracking Active";
         indicator.className = "tracking-indicator";
@@ -1543,7 +1413,7 @@
       if (currentLocation) {
         map.setCenter(currentLocation);
         map.setZoom(18);
-
+        
         if (userMarker) {
           userMarker.setAnimation(google.maps.Animation.BOUNCE);
           setTimeout(() => userMarker.setAnimation(null), 2000);
@@ -1554,13 +1424,18 @@
     }
 
     // Initialize map when page loads
-    window.onload = function() {
-      document.body.style.opacity = '0';
-      setTimeout(() => {
-        document.body.style.transition = 'opacity 0.5s ease';
-        document.body.style.opacity = '1';
-      }, 100);
-    };
+   // Update the window.onload function
+window.onload = function() {
+  document.body.style.opacity = '0';
+  setTimeout(() => {
+    document.body.style.transition = 'opacity 0.5s ease';
+    document.body.style.opacity = '1';
+    
+    // Load data after page is visible
+    loadStudentsData();
+    loadAddressesData();
+  }, 100);
+};
   </script>
 
   <script async
