@@ -852,23 +852,23 @@ def get_best_route():
     origin = request.args.get("origin")
     destination = request.args.get("destination")
     waypoints = request.args.get("waypoints")
-    
+
     if not origin or not destination:
         return jsonify({"error": "Missing origin or destination"}), 400
-    
+
     waypoints_list = [w.strip() for w in waypoints.split(",")] if waypoints else []
-    
+
     google_route = get_google_directions(origin, destination, waypoints_list)
     ors_route = get_ors_directions(origin, destination, waypoints_list)
-    
+
     if not google_route and not ors_route:
         return jsonify({"error": "No route found from either API"}), 500
-    
+
     best_route = min(
         [r for r in [google_route, ors_route] if r],
         key=lambda r: r["duration"]
     )
-    
+
     return jsonify({
         "source": best_route["source"],
         "polyline": best_route["polyline"],
@@ -876,10 +876,613 @@ def get_best_route():
     })
 
 
+# Replace the student API routes in your main.py with these enhanced versions:
+
+# Replace the student API routes in your main.py with these enhanced versions:
+
+# Replace the student API routes in your main.py with these enhanced versions:
+
+@app.route("/api/get-student-addresses")
+@login_required
+@role_required('driver')
+def api_get_student_addresses():
+    """Get all student pickup addresses for the current driver with debugging"""
+    try:
+        print(f"🔍 Getting student addresses for driver: {session.get('user_id')} ({session.get('full_name')})")
+
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+
+        # First, let's check if we have any students at all
+        cursor.execute('SELECT COUNT(*) FROM students WHERE is_active = 1')
+        total_students = cursor.fetchone()[0]
+        print(f"📊 Total active students in database: {total_students}")
+
+        # Check if this driver has any assigned students
+        cursor.execute('''
+            SELECT COUNT(*) FROM students 
+            WHERE assigned_driver_id = ? AND is_active = 1
+        ''', (session['user_id'],))
+        assigned_count = cursor.fetchone()[0]
+        print(f"📊 Students assigned to this driver: {assigned_count}")
+
+        # Get assigned students with their pickup addresses
+        cursor.execute('''
+            SELECT s.id, s.full_name, s.pickup_address, s.class_name, s.current_status,
+                   p.full_name as parent_name, p.phone as parent_phone
+            FROM students s
+            LEFT JOIN users p ON s.parent_id = p.id
+            WHERE s.assigned_driver_id = ? AND s.is_active = 1
+            ORDER BY s.full_name
+        ''', (session['user_id'],))
+
+        students = []
+        for student in cursor.fetchall():
+            print(f"📝 Found student: {student[1]} at {student[2]}")
+            students.append({
+                'id': student[0],
+                'name': student[1],
+                'address': student[2] or 'No address set',  # Handle null addresses
+                'class': student[3] or 'No class',
+                'status': student[4] or 'unknown',
+                'parent_name': student[5] or 'No parent',
+                'parent_phone': student[6] or 'No phone'
+            })
+
+        conn.close()
+
+        print(f"✅ Returning {len(students)} students")
+        return jsonify({
+            'success': True,
+            'students': students,
+            'debug_info': {
+                'total_students': total_students,
+                'assigned_to_driver': assigned_count,
+                'driver_id': session['user_id'],
+                'driver_name': session['full_name']
+            }
+        })
+
+    except Exception as e:
+        print(f"❌ Error getting student addresses: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)})
 
 
+@app.route("/api/get-parent-addresses")
+@login_required
+@role_required('driver')
+def api_get_parent_addresses():
+    """Get addresses from parents.db SQLite database"""
+    try:
+        print("🔍 Trying to get parent addresses from parents.db SQLite database")
+
+        # Connect to parents.db SQLite database
+        parents_db_path = PROJECT_ROOT / "parents.db"
+
+        if not parents_db_path.exists():
+            print(f"❌ Parents database not found at: {parents_db_path}")
+            return jsonify({'success': False, 'error': 'Parents database not found'})
+
+        print(f"📁 Found parents database at: {parents_db_path}")
+
+        # Connect to the parents database
+        conn = sqlite3.connect(parents_db_path)
+        cursor = conn.cursor()
+
+        # Check what tables exist
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+        print(f"📊 Tables in parents.db: {tables}")
+
+        # Get column information for PARENTS table
+        cursor.execute("PRAGMA table_info(PARENTS)")
+        columns = cursor.fetchall()
+        print(f"📊 Columns in PARENTS table: {columns}")
+
+        # Get column names
+        column_names = [col[1] for col in columns]
+        print(f"📊 Column names: {column_names}")
+
+        # Try different possible column name variations
+        possible_address_columns = ['address', 'Address', 'ADDRESS', 'full_address', 'location']
+        possible_name_columns = ['child_name', 'child_nam', 'full_name', 'name']
+        possible_phone_columns = ['phone_number', 'phone_num', 'phone', 'Phone']
+
+        # Find the correct column names
+        address_col = None
+        name_col = None
+        phone_col = None
+
+        for col in possible_address_columns:
+            if col in column_names:
+                address_col = col
+                break
+
+        for col in possible_name_columns:
+            if col in column_names:
+                name_col = col
+                break
+
+        for col in possible_phone_columns:
+            if col in column_names:
+                phone_col = col
+                break
+
+        print(f"🎯 Using columns - Address: {address_col}, Name: {name_col}, Phone: {phone_col}")
+
+        # Build the query dynamically
+        if not address_col:
+            # If no address column found, use all columns and see what we have
+            cursor.execute("SELECT * FROM PARENTS LIMIT 1")
+            sample_row = cursor.fetchone()
+            print(f"📄 Sample row data: {sample_row}")
+            return jsonify({'success': False, 'error': f'Address column not found. Available columns: {column_names}'})
+
+        # Build the SELECT query
+        select_query = f"SELECT "
+        select_fields = []
+
+        if 'full_name' in column_names:
+            select_fields.append('full_name')
+        else:
+            select_fields.append(column_names[0])  # Use first column as fallback
+
+        if name_col:
+            select_fields.append(name_col)
+        else:
+            select_fields.append("'' as child_name")
+
+        if phone_col:
+            select_fields.append(phone_col)
+        else:
+            select_fields.append("'' as phone")
+
+        select_fields.append(address_col)
+
+        select_query += ", ".join(select_fields) + " FROM PARENTS"
+
+        print(f"📝 Executing query: {select_query}")
+        cursor.execute(select_query)
+        parent_records = cursor.fetchall()
+
+        print(f"📊 Found {len(parent_records)} parent records")
+
+        addresses = []
+        for i, record in enumerate(parent_records):
+            print(f"📝 Raw record {i + 1}: {record}")
+
+            if len(record) >= 4:
+                full_name = record[0] or f"Parent {i + 1}"
+                child_name = record[1] or f"Child {i + 1}"
+                phone_number = record[2] or f"0555 000 00{i + 10:02d}"
+                address = record[3] or f"Address not available for {full_name}"
+
+                print(
+                    f"📝 Processed {i + 1}: Parent: {full_name} | Child: {child_name} | Phone: {phone_number} | Address: {address}")
+
+                addresses.append({
+                    'id': f"parent_{i}",
+                    'name': child_name,  # Use child_name as student name
+                    'parent_name': full_name,
+                    'phone': phone_number,
+                    'address': address,
+                    'class': f"Grade {(i % 5) + 1}",  # Random grade assignment
+                    'status': 'available'
+                })
+            else:
+                print(f"⚠️ Record {i + 1} has insufficient data: {record}")
+
+        conn.close()
+
+        print(f"✅ Returning {len(addresses)} parent addresses")
+        return jsonify({'success': True, 'addresses': addresses})
+
+    except Exception as e:
+        print(f"❌ Error getting parent addresses: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)})
 
 
+@app.route("/api/debug-parents-table")
+@login_required
+def api_debug_parents_table():
+    """Debug endpoint to inspect the exact structure of the PARENTS table"""
+    try:
+        parents_db_path = PROJECT_ROOT / "parents.db"
+
+        if not parents_db_path.exists():
+            return jsonify({'success': False, 'error': 'Parents database not found'})
+
+        conn = sqlite3.connect(parents_db_path)
+        cursor = conn.cursor()
+
+        # Get table structure
+        cursor.execute("PRAGMA table_info(PARENTS)")
+        columns = cursor.fetchall()
+
+        # Get all data
+        cursor.execute("SELECT * FROM PARENTS")
+        all_records = cursor.fetchall()
+
+        # Get first few records for inspection
+        cursor.execute("SELECT * FROM PARENTS LIMIT 3")
+        sample_records = cursor.fetchall()
+
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'columns': columns,
+            'total_records': len(all_records),
+            'sample_records': sample_records,
+            'column_names': [col[1] for col in columns]
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route("/api/create-sample-students")
+@login_required
+@role_required('driver')
+def api_create_sample_students():
+    """Create sample students from parents.db data"""
+    try:
+        print("🔧 Creating students from parents.db data...")
+
+        # First get data from parents.db
+        parents_db_path = PROJECT_ROOT / "parents.db"
+
+        if not parents_db_path.exists():
+            return jsonify({'success': False, 'error': 'Parents database not found'})
+
+        # Connect to parents database
+        parents_conn = sqlite3.connect(parents_db_path)
+        parents_cursor = parents_conn.cursor()
+
+        parents_cursor.execute("SELECT full_name, child_name, phone_number, address FROM PARENTS")
+        parent_records = parents_cursor.fetchall()
+        parents_conn.close()
+
+        if not parent_records:
+            return jsonify({'success': False, 'error': 'No parent data found'})
+
+        # Connect to main database
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+
+        # Check if we already have students
+        cursor.execute('SELECT COUNT(*) FROM students')
+        existing_count = cursor.fetchone()[0]
+
+        # Get current driver ID
+        driver_id = session['user_id']
+
+        # Create students from parent data
+        created_count = 0
+        for i, (parent_name, child_name, phone, address) in enumerate(parent_records):
+            student_id = f"STU2024{i + 1:03d}"
+            student_name = child_name or f"Child of {parent_name}"
+            class_name = f"{(i % 5) + 1}-{chr(65 + (i % 3))}"  # Random class like "1-A", "2-B", etc.
+
+            try:
+                cursor.execute('''
+                    INSERT OR IGNORE INTO students 
+                    (student_id, full_name, class_name, pickup_address, assigned_driver_id, 
+                     is_active, current_status, emergency_contact)
+                    VALUES (?, ?, ?, ?, ?, 1, 'at_home', ?)
+                ''', (student_id, student_name, class_name, address, driver_id, phone))
+
+                if cursor.rowcount > 0:
+                    created_count += 1
+                    print(f"✅ Created student: {student_name} at {address}")
+
+            except Exception as e:
+                print(f"⚠️ Error creating student {student_name}: {e}")
+                continue
+
+        conn.commit()
+        conn.close()
+
+        print(f"✅ Created {created_count} students from parent data")
+        return jsonify({
+            'success': True,
+            'message': f'Created {created_count} students from parent database',
+            'total_parents': len(parent_records),
+            'existing_students': existing_count,
+            'new_students': created_count
+        })
+
+    except Exception as e:
+        print(f"❌ Error creating students from parent data: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route("/api/debug-databases")
+@login_required
+def api_debug_databases():
+    """Debug endpoint to check database contents"""
+    try:
+        debug_info = {}
+
+        # Check main database
+        try:
+            conn = sqlite3.connect(USERS_DB)
+            cursor = conn.cursor()
+
+            cursor.execute('SELECT COUNT(*) FROM students')
+            debug_info['main_db_students'] = cursor.fetchone()[0]
+
+            cursor.execute('SELECT COUNT(*) FROM users WHERE role = "driver"')
+            debug_info['main_db_drivers'] = cursor.fetchone()[0]
+
+            cursor.execute('SELECT id, full_name, role FROM users WHERE role = "driver"')
+            debug_info['drivers'] = cursor.fetchall()
+
+            conn.close()
+        except Exception as e:
+            debug_info['main_db_error'] = str(e)
+
+        # Check parents database
+        try:
+            parents_db_path = PROJECT_ROOT / "parents.db"
+            if parents_db_path.exists():
+                conn = sqlite3.connect(parents_db_path)
+                cursor = conn.cursor()
+
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                debug_info['parents_db_tables'] = cursor.fetchall()
+
+                cursor.execute("SELECT COUNT(*) FROM PARENTS")
+                debug_info['parents_db_count'] = cursor.fetchone()[0]
+
+                cursor.execute("SELECT full_name, child_name, address FROM PARENTS LIMIT 3")
+                debug_info['parents_db_sample'] = cursor.fetchall()
+
+                conn.close()
+            else:
+                debug_info['parents_db_error'] = 'File not found'
+        except Exception as e:
+            debug_info['parents_db_error'] = str(e)
+
+        return jsonify({'success': True, 'debug_info': debug_info})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# Add these routes to your main.py to help update addresses in the parents.db
+
+@app.route("/api/update-parent-address", methods=["POST"])
+@login_required
+@role_required('admin')  # Only admin can update addresses
+def api_update_parent_address():
+    """Update address for a specific parent in parents.db"""
+    try:
+        data = request.get_json()
+        parent_id = data.get('parent_id')  # Like "Parent1"
+        new_address = data.get('address')
+
+        if not parent_id or not new_address:
+            return jsonify({'success': False, 'error': 'Missing parent_id or address'})
+
+        parents_db_path = PROJECT_ROOT / "parents.db"
+
+        if not parents_db_path.exists():
+            return jsonify({'success': False, 'error': 'Parents database not found'})
+
+        # Check if file is writable
+        if not os.access(parents_db_path, os.W_OK):
+            return jsonify({'success': False, 'error': 'Database file is read-only'})
+
+        conn = sqlite3.connect(parents_db_path)
+        cursor = conn.cursor()
+
+        # Update the address - assuming full_name contains "Parent1", "Parent2", etc.
+        cursor.execute('''
+            UPDATE PARENTS 
+            SET address = ? 
+            WHERE full_name = ?
+        ''', (new_address, parent_id))
+
+        rows_affected = cursor.rowcount
+        conn.commit()
+        conn.close()
+
+        if rows_affected > 0:
+            print(f"✅ Updated address for {parent_id}: {new_address}")
+            return jsonify({'success': True, 'message': f'Updated address for {parent_id}'})
+        else:
+            return jsonify({'success': False, 'error': f'No parent found with ID {parent_id}'})
+
+    except Exception as e:
+        print(f"❌ Error updating address: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route("/api/fix-all-addresses", methods=["POST"])
+@login_required
+@role_required('admin')
+def api_fix_all_addresses():
+    """Fix all null addresses in parents.db with the correct addresses"""
+    try:
+        parents_db_path = PROJECT_ROOT / "parents.db"
+
+        if not parents_db_path.exists():
+            return jsonify({'success': False, 'error': 'Parents database not found'})
+
+        # Check if file is writable
+        if not os.access(parents_db_path, os.W_OK):
+            return jsonify({'success': False, 'error': 'Database file is read-only. Please check file permissions.'})
+
+        conn = sqlite3.connect(parents_db_path)
+        cursor = conn.cursor()
+
+        # The correct addresses from your original data
+        correct_addresses = {
+            'Parent1': 'Tunali Hilmi Caddesi No: 45/8, Cankaya, Ankara',
+            'Parent2': 'Bulten Sokak No: 12/3, Cankaya, Ankara',
+            'Parent3': 'Kizilirmak Sokak No: 28/5, Cankaya, Ankara',
+            'Parent4': 'Arjantin Caddesi No: 67/11, Cankaya, Ankara'
+        }
+
+        updated_count = 0
+
+        for parent_id, address in correct_addresses.items():
+            cursor.execute('''
+                UPDATE PARENTS 
+                SET address = ? 
+                WHERE full_name = ?
+            ''', (address, parent_id))
+
+            if cursor.rowcount > 0:
+                updated_count += 1
+                print(f"✅ Updated {parent_id}: {address}")
+            else:
+                print(f"⚠️ No record found for {parent_id}")
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': f'Updated {updated_count} addresses',
+            'updated_count': updated_count,
+            'total_attempted': len(correct_addresses)
+        })
+
+    except Exception as e:
+        print(f"❌ Error fixing addresses: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route("/api/check-db-permissions")
+@login_required
+def api_check_db_permissions():
+    """Check database file permissions and provide troubleshooting info"""
+    try:
+        parents_db_path = PROJECT_ROOT / "parents.db"
+
+        info = {
+            'file_exists': parents_db_path.exists(),
+            'file_path': str(parents_db_path),
+            'current_dir': str(PROJECT_ROOT)
+        }
+
+        if parents_db_path.exists():
+            import stat
+            file_stat = parents_db_path.stat()
+
+            info.update({
+                'readable': os.access(parents_db_path, os.R_OK),
+                'writable': os.access(parents_db_path, os.W_OK),
+                'file_size': file_stat.st_size,
+                'permissions': oct(file_stat.st_mode)[-3:],
+                'owner_writable': bool(file_stat.st_mode & stat.S_IWUSR),
+                'group_writable': bool(file_stat.st_mode & stat.S_IWGRP),
+                'other_writable': bool(file_stat.st_mode & stat.S_IWOTH)
+            })
+
+            # Try to test write access
+            try:
+                conn = sqlite3.connect(parents_db_path)
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM PARENTS")
+                record_count = cursor.fetchone()[0]
+                conn.close()
+                info['can_read_db'] = True
+                info['record_count'] = record_count
+            except Exception as e:
+                info['can_read_db'] = False
+                info['read_error'] = str(e)
+
+            # Try a test write
+            try:
+                conn = sqlite3.connect(parents_db_path)
+                cursor = conn.cursor()
+                # Just test if we can begin a transaction
+                cursor.execute("BEGIN TRANSACTION")
+                cursor.execute("ROLLBACK")
+                conn.close()
+                info['can_write_db'] = True
+            except Exception as e:
+                info['can_write_db'] = False
+                info['write_error'] = str(e)
+
+        return jsonify({'success': True, 'info': info})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route("/api/recreate-parents-db")
+@login_required
+@role_required('admin')
+def api_recreate_parents_db():
+    """Recreate the parents database with correct data"""
+    try:
+        parents_db_path = PROJECT_ROOT / "parents.db"
+        backup_path = PROJECT_ROOT / f"parents_backup_{int(time.time())}.db"
+
+        # Backup existing database
+        if parents_db_path.exists():
+            import shutil
+            shutil.copy2(parents_db_path, backup_path)
+            print(f"📦 Backed up existing database to: {backup_path}")
+
+        # Create new database
+        conn = sqlite3.connect(parents_db_path)
+        cursor = conn.cursor()
+
+        # Create table with correct structure
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS PARENTS (
+                full_name TEXT PRIMARY KEY,
+                child_name TEXT,
+                phone_number TEXT,
+                address TEXT
+            )
+        ''')
+
+        # Insert the correct data
+        parent_data = [
+            ('Parent1', 'Egemen Doruk Serdar', '0543 345 89 33', 'Tunali Hilmi Caddesi No: 45/8, Cankaya, Ankara'),
+            ('Parent2', 'Mustafa Pinarci', '0597 398 23 23', 'Bulten Sokak No: 12/3, Cankaya, Ankara'),
+            ('Parent3', 'Ege Izmir', '0567 897 67 21', 'Kizilirmak Sokak No: 28/5, Cankaya, Ankara'),
+            ('Parent4', 'Mustafa Bogac Morkoyun', '0547 323 89 92', 'Arjantin Caddesi No: 67/11, Cankaya, Ankara')
+        ]
+
+        # Clear existing data and insert new
+        cursor.execute('DELETE FROM PARENTS')
+        cursor.executemany('''
+            INSERT INTO PARENTS (full_name, child_name, phone_number, address)
+            VALUES (?, ?, ?, ?)
+        ''', parent_data)
+
+        conn.commit()
+        conn.close()
+
+        print("✅ Recreated parents database with correct addresses")
+
+        return jsonify({
+            'success': True,
+            'message': 'Database recreated successfully',
+            'backup_created': str(backup_path),
+            'records_inserted': len(parent_data)
+        })
+
+    except Exception as e:
+        print(f"❌ Error recreating database: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)})
 
 
 

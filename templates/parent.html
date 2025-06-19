@@ -201,12 +201,10 @@
       animation: pulse 2s ease-in-out infinite;
     }
 
-
-
     /* Location map card */
     .location-map {
       position: relative;
-      grid-column: 1 / -1; /* Make it span both columns */
+      grid-column: 1 / -1;
     }
 
     .map-display {
@@ -216,13 +214,192 @@
       margin-bottom: 1rem;
       position: relative;
       overflow: hidden;
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .map-iframe {
+    .map-placeholder {
       width: 100%;
       height: 100%;
-      border: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .map-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.8;
+    }
+
+    .map-text {
+      margin-bottom: 0.5rem;
+    }
+
+    .map-subtext {
+      font-size: 0.9rem;
+      opacity: 0.7;
+    }
+
+    /* Interactive map */
+    #interactiveMap {
+      width: 100%;
+      height: 100%;
       border-radius: 12px;
+      background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .map-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image:
+        /* Major roads */
+        linear-gradient(90deg, #d1d5db 0%, #d1d5db 6px, transparent 6px, transparent 100%),
+        linear-gradient(45deg, #d1d5db 0%, #d1d5db 4px, transparent 4px, transparent 100%),
+        linear-gradient(135deg, #d1d5db 0%, #d1d5db 4px, transparent 4px, transparent 100%),
+        /* Minor streets */
+        linear-gradient(0deg, #e5e7eb 0%, #e5e7eb 2px, transparent 2px, transparent 100%),
+        linear-gradient(90deg, #e5e7eb 0%, #e5e7eb 2px, transparent 2px, transparent 100%),
+        /* Parks and green areas */
+        radial-gradient(circle at 20% 30%, #22c55e 0%, #22c55e 30px, transparent 30px),
+        radial-gradient(circle at 80% 70%, #16a34a 0%, #16a34a 25px, transparent 25px),
+        radial-gradient(circle at 60% 20%, #15803d 0%, #15803d 20px, transparent 20px);
+      background-size:
+        100px 30px,
+        80px 80px,
+        70px 70px,
+        40px 100%,
+        100% 40px,
+        150px 150px,
+        120px 120px,
+        100px 100px;
+      background-position:
+        0 150px,
+        50px 0,
+        200px 100px,
+        0 0,
+        0 0,
+        0 0,
+        300px 200px,
+        150px 50px;
+    }
+
+    .building {
+      position: absolute;
+      background: #94a3b8;
+      border: 1px solid #64748b;
+      border-radius: 2px;
+    }
+
+    .building.school {
+      background: #f59e0b;
+      border-color: #d97706;
+    }
+
+    .building.home {
+      background: #3b82f6;
+      border-color: #2563eb;
+    }
+
+    .building.commercial {
+      background: #6b7280;
+      border-color: #4b5563;
+    }
+
+    .street {
+      position: absolute;
+      background: #d1d5db;
+      border-radius: 1px;
+    }
+
+    .street.main {
+      background: #9ca3af;
+      box-shadow: inset 0 0 0 1px #6b7280;
+    }
+
+    .street-name {
+      position: absolute;
+      font-size: 10px;
+      color: #374151;
+      font-weight: 600;
+      text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+      pointer-events: none;
+    }
+
+    .landmark {
+      position: absolute;
+      font-size: 16px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .bus-marker {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+      border: 3px solid white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: white;
+      box-shadow: 0 6px 20px rgba(74, 222, 128, 0.4), 0 0 0 4px rgba(74, 222, 128, 0.2);
+      animation: busMarkerPulse 2s ease-in-out infinite;
+      z-index: 10;
+    }
+
+    .bus-route {
+      position: absolute;
+      height: 4px;
+      background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%);
+      border-radius: 2px;
+      box-shadow: 0 2px 4px rgba(74, 222, 128, 0.3);
+      z-index: 5;
+    }
+
+    .bus-route::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(90deg, rgba(74, 222, 128, 0.3) 0%, rgba(34, 197, 94, 0.3) 100%);
+      border-radius: 4px;
+      z-index: -1;
+    }
+
+    .bus-stop {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #fbbf24;
+      border: 2px solid white;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(251, 191, 36, 0.4);
+      z-index: 8;
+    }
+
+    .bus-stop::after {
+      content: '🚏';
+      position: absolute;
+      top: -25px;
+      left: -8px;
+      font-size: 16px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
 
     .location-info {
@@ -395,6 +572,17 @@
       50% { opacity: 0.8; }
     }
 
+    @keyframes busMarkerPulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 4px 12px rgba(74, 222, 128, 0.4);
+      }
+      50% {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(74, 222, 128, 0.6);
+      }
+    }
+
     .floating-notification {
       position: fixed;
       top: 2rem;
@@ -456,8 +644,6 @@
       </div>
     </div>
 
-
-
     <!-- Location Map -->
     <div class="card location-map">
       <div class="card-header">
@@ -465,11 +651,63 @@
         <div class="card-title">Location Tracking</div>
       </div>
       <div class="map-display">
-        <iframe 
-          class="map-iframe"
-          src="https://www.google.com/maps/embed/v1/view?key=YOUR_API_KEY&center=41.0082,28.9784&zoom=15&maptype=roadmap"
-          allowfullscreen>
-        </iframe>
+        <div id="interactiveMap">
+          <!-- Realistic map background -->
+          <div class="map-background"></div>
+
+          <!-- Streets -->
+          <div class="street main" style="top: 130px; left: 0; width: 100%; height: 8px;"></div>
+          <div class="street main" style="top: 200px; left: 0; width: 100%; height: 6px;"></div>
+          <div class="street" style="top: 0; left: 150px; width: 4px; height: 100%;"></div>
+          <div class="street" style="top: 0; left: 300px; width: 4px; height: 100%;"></div>
+          <div class="street" style="top: 80px; left: 0; width: 100%; height: 3px;"></div>
+          <div class="street" style="top: 250px; left: 0; width: 100%; height: 3px;"></div>
+
+          <!-- Street names -->
+          <div class="street-name" style="top: 115px; left: 10px;">Atatürk Caddesi</div>
+          <div class="street-name" style="top: 185px; left: 10px;">İstiklal Sokak</div>
+          <div class="street-name" style="top: 10px; left: 155px; transform: rotate(90deg); transform-origin: left;">Cumhuriyet Cd.</div>
+
+          <!-- Buildings -->
+          <div class="building home" style="top: 20px; left: 20px; width: 60px; height: 50px;"></div>
+          <div class="building" style="top: 20px; left: 90px; width: 50px; height: 40px;"></div>
+          <div class="building commercial" style="top: 15px; left: 200px; width: 80px; height: 60px;"></div>
+          <div class="building" style="top: 25px; left: 320px; width: 70px; height: 45px;"></div>
+
+          <div class="building school" style="top: 90px; left: 350px; width: 100px; height: 80px;"></div>
+          <div class="building" style="top: 140px; left: 20px; width: 40px; height: 35px;"></div>
+          <div class="building" style="top: 145px; left: 70px; width: 45px; height: 40px;"></div>
+
+          <div class="building commercial" style="top: 210px; left: 80px; width: 60px; height: 50px;"></div>
+          <div class="building" style="top: 215px; left: 160px; width: 55px; height: 45px;"></div>
+          <div class="building" style="top: 220px; left: 250px; width: 50px; height: 40px;"></div>
+          <div class="building" style="top: 225px; left: 320px; width: 65px; height: 35px;"></div>
+
+          <!-- Landmarks -->
+          <div class="landmark" style="top: 110px; left: 365px;">🏫</div>
+          <div class="landmark" style="top: 35px; left: 35px;">🏠</div>
+          <div class="landmark" style="top: 225px; left: 95px;">🏪</div>
+          <div class="landmark" style="top: 30px; left: 215px;">🏢</div>
+          <div class="landmark" style="top: 40px; left: 450px;">🌳</div>
+          <div class="landmark" style="top: 270px; left: 400px;">⛽</div>
+
+          <!-- Bus route with realistic path -->
+          <div class="bus-route" style="top: 132px; left: 50px; width: 120px;"></div>
+          <div class="bus-route" style="top: 132px; left: 170px; width: 80px;"></div>
+          <div class="bus-route" style="top: 130px; left: 250px; width: 100px; transform: rotate(-8deg); transform-origin: left;"></div>
+          <div class="bus-route" style="top: 120px; left: 340px; width: 60px; transform: rotate(-25deg); transform-origin: left;"></div>
+
+          <!-- Bus stops -->
+          <div class="bus-stop" style="top: 128px; left: 80px;"></div>
+          <div class="bus-stop" style="top: 128px; left: 200px;"></div>
+          <div class="bus-stop" style="top: 125px; left: 300px;"></div>
+          <div class="bus-stop" style="top: 115px; left: 380px;"></div>
+
+          <!-- Bus marker -->
+          <div class="bus-marker" id="busMarker" style="top: 115px; left: 250px;">
+            🚌
+          </div>
+        </div>
         <div class="location-info">
           <div class="location-text">📍 Atatürk Caddesi, No: 45</div>
           <div class="location-coords">41.0082° K, 28.9784° D</div>
@@ -521,313 +759,113 @@
     </a>
   </div>
 
-  <!-- Floating Notification -->
-  <div class="floating-notification" id="notification" style="display: none;">
-    <strong>🚌 Bus Notification:</strong> Your child just got on the bus
-  </div>
-  
   <!-- Hidden data for JavaScript -->
   <div id="initial-attendance" style="display: none;">{{ student.attendance }}</div>
+  <div id="student-data" style="display: none;"
+       data-name="{{ student.name }}"
+       data-class="{{ student.class }}"
+       data-status="{{ student.status }}"
+       data-status-class="{{ student.status_class }}"
+       data-gender="{{ student.gender }}">
+  </div>
 
   <script>
-    // Track previous attendance status to detect changes
-    let previousAttendance = document.getElementById('initial-attendance').textContent.trim() === 'True';
-    let isFirstCheck = true; // Flag to prevent notification on first API call
-    let temporaryOffBusStatus = false; // Flag for temporary "just got off" status
-    let offBusTimeout = null; // Timeout for reverting status
-    
-    // Dynamic status checking - polls server every 5 seconds
-    function checkStudentStatus() {
-      fetch('/api/student-status')
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            const statusElement = document.querySelector('.status-indicator');
-            const studentNameElement = document.querySelector('.student-name');
-            const studentClassElement = document.querySelector('.student-class');
-            
-            // Check if attendance changed from false to true (got on the bus)
-            if (!isFirstCheck && !previousAttendance && data.student.attendance) {
-              showBusNotification(data.student.name, 'boarded');
-            }
-            
-            // Check if attendance changed from true to false (got off the bus)
-            if (!isFirstCheck && previousAttendance && !data.student.attendance) {
-              showOffBusNotification(data.student.name);
-            }
-            
-            // Update previous attendance status
-            previousAttendance = data.student.attendance;
-            isFirstCheck = false; // After first check, allow notifications
-            
-            // Update status indicator (consider temporary status)
-            let displayStatus = data.student.status;
-            let displayClass = data.student.status_class;
-            let displayIcon = data.student.status_icon;
-            
-            // If we have a temporary "just got off" status, override the display
-            if (temporaryOffBusStatus && !data.student.attendance) {
-              displayStatus = 'Just got off the bus';
-              displayClass = 'status-just-off-bus';
-              displayIcon = '🏃‍♂️';
-            }
-            
-            statusElement.className = `status-indicator ${displayClass}`;
-            statusElement.innerHTML = `${displayIcon} ${displayStatus}`;
-            
-            // Update student info if changed
-            studentNameElement.textContent = data.student.name;
-            studentClassElement.textContent = `Class ${data.student.class}`;
-            
-            console.log('Status updated:', displayStatus);
-          } else {
-            console.error('Failed to fetch student status:', data.error);
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching student status:', error);
-        });
-    }
+    // Simulate realistic bus movement following the route
+    let busPosition = { x: 250, y: 115 };
+    let busDirection = 1;
+    let routeProgress = 0;
 
-    // Show notification when child gets on the bus
-    function showBusNotification(studentName, type) {
-      const notification = document.getElementById('notification');
-      const firstName = studentName.split(' ')[0];
-      notification.innerHTML = `<strong>🚌 Bus Notification:</strong> Your child ${firstName} just got on the bus`;
-      notification.style.display = 'block';
+    // Define realistic route points the bus follows
+    const routePoints = [
+      { x: 80, y: 128 },   // First bus stop
+      { x: 150, y: 130 },  // Moving along main street
+      { x: 200, y: 128 },  // Second bus stop
+      { x: 280, y: 125 },  // Turning slightly
+      { x: 300, y: 125 },  // Third bus stop
+      { x: 350, y: 120 },  // Approaching school
+      { x: 380, y: 115 },  // School bus stop
+      { x: 400, y: 110 },  // Past school
+      { x: 380, y: 115 },  // Return journey starts
+      { x: 350, y: 120 },  // Returning
+      { x: 300, y: 125 },  // Back to third stop
+      { x: 280, y: 125 },  // Continuing back
+      { x: 200, y: 128 },  // Second stop return
+      { x: 150, y: 130 },  // Almost home
+      { x: 80, y: 128 }    // Back to first stop
+    ];
 
-      // Add to activities list permanently and save to database
-      const activityText = `${firstName} boarded the bus`;
-      addActivityToList(firstName, 'boarded', activityText, true);
+    function moveBus() {
+      const busMarker = document.getElementById('busMarker');
 
-      setTimeout(() => {
-        notification.style.display = 'none';
-      }, 5000);
-    }
+      // Calculate current target point
+      const currentPoint = routePoints[Math.floor(routeProgress) % routePoints.length];
+      const nextPoint = routePoints[(Math.floor(routeProgress) + 1) % routePoints.length];
 
-    // Show notification when child gets off the bus
-    function showOffBusNotification(studentName) {
-      const notification = document.getElementById('notification');
-      const firstName = studentName.split(' ')[0];
-      notification.innerHTML = `<strong>🏃‍♂️ Bus Notification:</strong> Your child ${firstName} just got off the bus`;
-      notification.style.display = 'block';
+      // Interpolate between current and next point
+      const t = routeProgress % 1;
+      busPosition.x = currentPoint.x + (nextPoint.x - currentPoint.x) * t;
+      busPosition.y = currentPoint.y + (nextPoint.y - currentPoint.y) * t;
 
-      // Set temporary status flag
-      temporaryOffBusStatus = true;
-      
-      // Clear any existing timeout
-      if (offBusTimeout) {
-        clearTimeout(offBusTimeout);
-      }
-      
-      // Revert to normal status after 30 seconds (will show "At Home" after page refresh)
-      offBusTimeout = setTimeout(() => {
-        temporaryOffBusStatus = false;
-        // Force a status update to revert to normal "At Home"
-        checkStudentStatus();
-      }, 30000); // 30 seconds
+      // Update bus position
+      busMarker.style.left = busPosition.x + 'px';
+      busMarker.style.top = busPosition.y + 'px';
 
-      // Add to activities list permanently and save to database
-      const activityText = `${firstName} got off the bus`;
-      addActivityToList(firstName, 'got_off', activityText, true);
+      // Add slight rotation based on direction
+      const angle = Math.atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x);
+      const rotation = (angle * 180 / Math.PI);
+      busMarker.style.transform = `rotate(${rotation}deg)`;
 
-      setTimeout(() => {
-        notification.style.display = 'none';
-      }, 5000);
-    }
+      // Progress along route
+      routeProgress += 0.02; // Adjust speed here
 
-    // Add new activity to the activities list
-    function addActivityToList(studentName, activityType, activityText = null, saveToDb = false, timestamp = null) {
-      const activityList = document.querySelector('.activity-list');
-      
-      // Use provided timestamp or current time
-      let timeString, dateString;
-      if (timestamp) {
-        const activityDate = new Date(timestamp);
-        timeString = activityDate.toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        });
-        const today = new Date();
-        const isToday = activityDate.toDateString() === today.toDateString();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const isYesterday = activityDate.toDateString() === yesterday.toDateString();
-        
-        if (isToday) {
-          dateString = 'Today';
-        } else if (isYesterday) {
-          dateString = 'Yesterday';
-        } else {
-          dateString = activityDate.toLocaleDateString('en-US');
-        }
-      } else {
-        const now = new Date();
-        timeString = now.toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        });
-        dateString = 'Today';
-      }
-
-      // Create new activity item
-      const newActivity = document.createElement('div');
-      newActivity.className = 'activity-item';
-      newActivity.style.opacity = '0';
-      newActivity.style.transform = 'translateX(-20px)';
-
-      let finalActivityText, iconClass, iconEmoji;
-      
-      if (activityText) {
-        finalActivityText = activityText;
-      } else if (activityType === 'boarded') {
-        finalActivityText = `${studentName} boarded the bus`;
-      } else if (activityType === 'got_off') {
-        finalActivityText = `${studentName} got off the bus`;
-      }
-      
-      if (activityType === 'boarded') {
-        iconClass = 'boarding';
-        iconEmoji = '🚌';
-      } else if (activityType === 'got_off') {
-        iconClass = 'getting-off';
-        iconEmoji = '🏃‍♂️';
-      }
-
-      newActivity.innerHTML = `
-        <div class="activity-icon ${iconClass}">${iconEmoji}</div>
-        <div class="activity-content">
-          <div class="activity-text">${finalActivityText}</div>
-          <div class="activity-time">${dateString} ${timeString}</div>
-        </div>
-      `;
-
-      // Insert at the beginning of the list
-      activityList.insertBefore(newActivity, activityList.firstChild);
-
-      // Animate in
-      setTimeout(() => {
-        newActivity.style.transition = 'all 0.3s ease';
-        newActivity.style.opacity = '1';
-        newActivity.style.transform = 'translateX(0)';
-      }, 100);
-
-      // Save to database if requested
-      if (saveToDb) {
-        fetch('/api/save-activity', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            student_name: studentName,
-            activity_type: activityType,
-            activity_text: finalActivityText
-          })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            console.log('Activity saved to database');
-          } else {
-            console.error('Failed to save activity:', data.error);
-          }
-        })
-        .catch(error => {
-          console.error('Error saving activity:', error);
-        });
-      }
-
-      // Limit to maximum 5 activities
-      const activities = activityList.querySelectorAll('.activity-item');
-      if (activities.length > 5) {
-        activities[activities.length - 1].remove();
+      // Reset if we've completed the full route
+      if (routeProgress >= routePoints.length) {
+        routeProgress = 0;
       }
     }
 
-    // Load activities from database on page load
-    function loadActivities() {
-      fetch('/api/get-activities')
-        .then(response => response.json())
-        .then(data => {
-          if (data.success && data.activities.length > 0) {
-            // Clear existing static activities
-            const activityList = document.querySelector('.activity-list');
-            activityList.innerHTML = '';
-            
-            // Add activities from database in reverse order since they come latest first
-            // but addActivityToList() inserts at the beginning
-            data.activities.reverse().forEach(activity => {
-              addActivityToList(
-                activity.student_name, 
-                activity.activity_type, 
-                activity.activity_text, 
-                false, // Don't save to DB again
-                activity.timestamp
-              );
-            });
-          }
-        })
-        .catch(error => {
-          console.error('Error loading activities:', error);
-        });
-    }
+    // Move bus every 100ms for smooth animation
+    setInterval(moveBus, 100);
 
-    // Load activities from database on page load
-    loadActivities();
-
-    // Start dynamic status checking every 5 seconds
-    setInterval(checkStudentStatus, 5000);
-
-    // Map functionality
-    let currentLocation = {
-      lat: 41.0082,
-      lng: 28.9784,
-      address: "Atatürk Caddesi, No: 45"
-    };
-
-    // Update map with new coordinates
-    function updateMapLocation(lat, lng, address = null) {
-      const mapIframe = document.querySelector('.map-iframe');
-      const locationText = document.querySelector('.location-text');
-      const locationCoords = document.querySelector('.location-coords');
-      
-      // Update iframe src with new coordinates
-      mapIframe.src = `https://www.google.com/maps/embed/v1/view?key=YOUR_API_KEY&center=${lat},${lng}&zoom=15&maptype=roadmap`;
-      
-      // Update location info
-      if (address) {
-        locationText.textContent = `📍 ${address}`;
-      }
-      locationCoords.textContent = `${lat.toFixed(4)}° K, ${lng.toFixed(4)}° D`;
-      
-      currentLocation = { lat, lng, address: address || currentLocation.address };
-    }
-
-    // Simulate bus movement (for demonstration)
-    function simulateBusMovement() {
-      // This would normally come from your real bus tracking API
-      // For now, we'll use the static coordinates
-      const locations = [
-        { lat: 41.0082, lng: 28.9784, address: "Atatürk Caddesi, No: 45" },
-        { lat: 41.0085, lng: 28.9790, address: "Taksim Meydanı" },
-        { lat: 41.0090, lng: 28.9795, address: "İstiklal Caddesi" }
+    // Simulate status updates
+    function simulateStatusUpdate() {
+      const statuses = [
+        { text: 'At Home', class: 'status-at-home', icon: '🏠' },
+        { text: 'In the bus', class: 'status-on-bus', icon: '🚌' },
+        { text: 'At School', class: 'status-at-school', icon: '🏫' }
       ];
-      
-      // You can enable this for demo purposes:
-      // let locationIndex = 0;
-      // setInterval(() => {
-      //   updateMapLocation(locations[locationIndex].lat, locations[locationIndex].lng, locations[locationIndex].address);
-      //   locationIndex = (locationIndex + 1) % locations.length;
-      // }, 10000); // Update every 10 seconds
+
+      let currentStatusIndex = 0;
+
+      setInterval(() => {
+        const statusElement = document.querySelector('.status-indicator');
+        currentStatusIndex = (currentStatusIndex + 1) % statuses.length;
+        const status = statuses[currentStatusIndex];
+
+        statusElement.className = `status-indicator ${status.class}`;
+        statusElement.innerHTML = `${status.icon} ${status.text}`;
+
+        // Show notification for bus status
+        if (status.text === 'In the bus') {
+          showNotification('Your child just got on the bus');
+        }
+      }, 8000); // Change status every 8 seconds
     }
 
-    // Initialize map
-    simulateBusMovement();
+    function showNotification(message) {
+      const notification = document.getElementById('notification');
+      notification.innerHTML = `<strong>🚌 Bus Notification:</strong> ${message}`;
+      notification.style.display = 'block';
 
-    // No automatic periodic notifications
+      setTimeout(() => {
+        notification.style.display = 'none';
+      }, 5000);
+    }
 
-    // Add some interactivity to cards
+    // Start simulation
+    simulateStatusUpdate();
+
+    // Add click interactions
     document.querySelectorAll('.card').forEach(card => {
       card.addEventListener('click', function() {
         this.style.transform = 'translateY(-5px) scale(1.02)';
@@ -837,11 +875,11 @@
       });
     });
 
-    // Real-time clock update
+    // Update time
     function updateTime() {
       const now = new Date();
       const timeString = now.toLocaleTimeString('en-US');
-      // You can add this to display current time somewhere if needed
+      console.log('Current time:', timeString);
     }
 
     setInterval(updateTime, 1000);
