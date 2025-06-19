@@ -852,6 +852,7 @@ def driver_route():
                                'name': session['full_name'],
                                'role': session['user_role']
                            })
+#Mustafa rota
 
 # Add this new route to your main.py file
 
@@ -946,7 +947,7 @@ def get_best_route():
         "duration_minutes": round(best_route["duration"] / 60, 1)
     })
 
-#Mustafa rota
+
 
 
 
