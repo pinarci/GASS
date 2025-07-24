@@ -771,15 +771,31 @@ def driver_dashboard():
 
 #Mustafa rota
 # Update your existing driver-route route to include the API key
+
+#Mustafa rota
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @app.route("/driver-route")
 @login_required
 @role_required('driver')
 def driver_route():
-    """Driver route management page"""
+    """Enhanced driver route management page with parents.db integration"""
     conn = sqlite3.connect(USERS_DB)
     cursor = conn.cursor()
 
-    # Get assigned students with their pickup addresses
+    # Get assigned students from main database
     cursor.execute('''
         SELECT s.id, s.full_name, s.class_name, s.current_status, s.pickup_address, s.dropoff_address,
                p.full_name as parent_name, p.phone as parent_phone
@@ -789,9 +805,55 @@ def driver_route():
         ORDER BY s.full_name
     ''', (session['user_id'],))
 
-    students = []
-    for student in cursor.fetchall():
-        students.append({
+    main_db_students = cursor.fetchall()
+
+    # Get vehicle info
+    cursor.execute('''
+        SELECT id, license_plate, capacity, model, current_latitude, current_longitude, status
+        FROM vehicles WHERE driver_id = ?
+    ''', (session['user_id'],))
+
+    vehicle = cursor.fetchone()
+    conn.close()
+
+    # Get additional students from parents.db
+    parents_db_students = []
+    try:
+        parents_db_path = PROJECT_ROOT / "parents.db"
+        if parents_db_path.exists():
+            parents_conn = sqlite3.connect(parents_db_path)
+            parents_cursor = parents_conn.cursor()
+            
+            parents_cursor.execute('''
+                SELECT full_name, child_name, phone_number, address 
+                FROM PARENTS 
+                WHERE address IS NOT NULL AND address != ''
+                ORDER BY child_name
+            ''')
+            
+            parent_records = parents_cursor.fetchall()
+            parents_conn.close()
+            
+            for i, (parent_name, child_name, phone, address) in enumerate(parent_records):
+                parents_db_students.append({
+                    'id': f'parent_db_{i}',
+                    'name': child_name or f'Child of {parent_name}',
+                    'class': f'Grade {(i % 5) + 1}',
+                    'status': 'available',
+                    'pickup_address': address,
+                    'dropoff_address': 'School',  # Default dropoff
+                    'parent_name': parent_name,
+                    'parent_phone': phone or '0555 123 4567'
+                })
+    except Exception as e:
+        print(f"Error loading parents.db data: {e}")
+
+    # Combine students from both sources
+    all_students = []
+    
+    # Add students from main database
+    for student in main_db_students:
+        all_students.append({
             'id': student[0],
             'name': student[1],
             'class': student[2],
@@ -799,29 +861,29 @@ def driver_route():
             'pickup_address': student[4],
             'dropoff_address': student[5],
             'parent_name': student[6],
-            'parent_phone': student[7]
+            'parent_phone': student[7],
+            'source': 'main_db'
         })
+    
+    # Add students from parents.db
+    all_students.extend([{**s, 'source': 'parents_db'} for s in parents_db_students])
 
-    # Get vehicle info with current location
-    cursor.execute('''
-        SELECT id, license_plate, capacity, model, current_latitude, current_longitude, status
-        FROM vehicles WHERE driver_id = ?
-    ''', (session['user_id'],))
-
-    vehicle = cursor.fetchone()
+    # Vehicle info
     vehicle_info = {
         'id': vehicle[0] if vehicle else None,
-        'plate': vehicle[1] if vehicle else 'Araç Atanmamış',
+        'plate': vehicle[1] if vehicle else 'No Vehicle Assigned',
         'capacity': vehicle[2] if vehicle else 0,
         'model': vehicle[3] if vehicle else 'N/A',
         'current_location': {
             'lat': vehicle[4], 
             'lng': vehicle[5]
-        } if vehicle and vehicle[4] else None,
+        } if vehicle and vehicle[4] else {'lat': 39.9334, 'lng': 32.8597},  # Default Ankara center
         'status': vehicle[6] if vehicle else 'unknown'
     }
 
     # Get today's route history
+    conn = sqlite3.connect(USERS_DB)
+    cursor = conn.cursor()
     cursor.execute('''
         SELECT a.event_type, a.timestamp, s.full_name as student_name, a.location
         FROM attendance_logs a
@@ -838,21 +900,308 @@ def driver_route():
             'student_name': log[2],
             'location': log[3]
         })
-
     conn.close()
     
     return render_template("driver-route.html",
                            user_name=session['full_name'],
                            vehicle=vehicle_info,
-                           students=students,
+                           students=all_students,
                            route_history=route_history,
-                           api_key="AIzaSyBnMCJBIa3Nld1h7SeIbPj1NV58FmAkZ_c",  # Add this line
+                           api_key="AIzaSyBnMCJBIa3Nld1h7SeIbPj1NV58FmAkZ_c",
                            current_user={
                                'id': session['user_id'],
                                'name': session['full_name'],
                                'role': session['user_role']
                            })
-#Mustafa rota
+
+
+@app.route("/api/get-all-student-addresses")
+@login_required
+@role_required('driver')
+def api_get_all_student_addresses():
+    """Get all student addresses from both main DB and parents.db"""
+    try:
+        all_students = []
+        
+        # Get from main database
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT s.id, s.full_name, s.pickup_address, s.class_name, s.current_status,
+                   p.full_name as parent_name, p.phone as parent_phone
+            FROM students s
+            LEFT JOIN users p ON s.parent_id = p.id
+            WHERE s.assigned_driver_id = ? AND s.is_active = 1
+            ORDER BY s.full_name
+        ''', (session['user_id'],))
+        
+        main_students = cursor.fetchall()
+        conn.close()
+        
+        for student in main_students:
+            all_students.append({
+                'id': student[0],
+                'name': student[1],
+                'address': student[2] or 'No address set',
+                'class': student[3] or 'No class',
+                'status': student[4] or 'unknown',
+                'parent_name': student[5] or 'No parent',
+                'parent_phone': student[6] or 'No phone',
+                'source': 'main_db'
+            })
+        
+        # Get from parents.db
+        try:
+            parents_db_path = PROJECT_ROOT / "parents.db"
+            if parents_db_path.exists():
+                parents_conn = sqlite3.connect(parents_db_path)
+                parents_cursor = parents_conn.cursor()
+                
+                parents_cursor.execute('''
+                    SELECT full_name, child_name, phone_number, address 
+                    FROM PARENTS 
+                    WHERE address IS NOT NULL AND address != ''
+                    ORDER BY child_name
+                ''')
+                
+                parent_records = parents_cursor.fetchall()
+                parents_conn.close()
+                
+                for i, (parent_name, child_name, phone, address) in enumerate(parent_records):
+                    all_students.append({
+                        'id': f'parents_db_{i}',
+                        'name': child_name or f'Child of {parent_name}',
+                        'address': address,
+                        'class': f'Grade {(i % 5) + 1}',
+                        'status': 'available',
+                        'parent_name': parent_name,
+                        'parent_phone': phone or '0555 123 4567',
+                        'source': 'parents_db'
+                    })
+        except Exception as e:
+            print(f"Error loading parents.db: {e}")
+        
+        return jsonify({
+            'success': True,
+            'students': all_students,
+            'total_count': len(all_students)
+        })
+        
+    except Exception as e:
+        print(f"Error getting all student addresses: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route("/api/plan-optimal-route", methods=['POST'])
+@login_required
+@role_required('driver')
+def api_plan_optimal_route():
+    """Plan optimal route using selected student addresses"""
+    try:
+        data = request.get_json()
+        selected_students = data.get('selected_students', [])
+        start_location = data.get('start_location', 'Ankara, Turkey')
+        end_location = data.get('end_location', 'School, Ankara')
+        
+        if not selected_students:
+            return jsonify({'success': False, 'error': 'No students selected'})
+        
+        # Get addresses for selected students
+        addresses = []
+        
+        # Check both databases for student addresses
+        for student_id in selected_students:
+            address = None
+            
+            if student_id.startswith('parents_db_'):
+                # Get from parents.db
+                try:
+                    parents_db_path = PROJECT_ROOT / "parents.db"
+                    if parents_db_path.exists():
+                        parents_conn = sqlite3.connect(parents_db_path)
+                        parents_cursor = parents_conn.cursor()
+                        
+                        # Extract index from student_id (e.g., 'parents_db_0' -> 0)
+                        index = int(student_id.split('_')[-1])
+                        
+                        parents_cursor.execute('''
+                            SELECT address FROM PARENTS 
+                            WHERE address IS NOT NULL AND address != ''
+                            ORDER BY child_name
+                            LIMIT 1 OFFSET ?
+                        ''', (index,))
+                        
+                        result = parents_cursor.fetchone()
+                        if result:
+                            address = result[0]
+                        parents_conn.close()
+                except Exception as e:
+                    print(f"Error getting address from parents.db: {e}")
+            else:
+                # Get from main database
+                conn = sqlite3.connect(USERS_DB)
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT pickup_address FROM students WHERE id = ?
+                ''', (student_id,))
+                result = cursor.fetchone()
+                if result:
+                    address = result[0]
+                conn.close()
+            
+            if address:
+                addresses.append(address)
+        
+        if not addresses:
+            return jsonify({'success': False, 'error': 'No valid addresses found for selected students'})
+        
+        # Use your existing route planning logic
+        waypoints_str = ','.join(addresses)
+        
+        # Try both Google and ORS APIs
+        google_route = get_google_directions(start_location, end_location, addresses)
+        ors_route = get_ors_directions(start_location, end_location, addresses)
+        
+        if not google_route and not ors_route:
+            return jsonify({'success': False, 'error': 'Could not plan route with either API'})
+        
+        # Choose the best route
+        best_route = None
+        if google_route and ors_route:
+            best_route = min([google_route, ors_route], key=lambda r: r["duration"])
+        else:
+            best_route = google_route or ors_route
+        
+        return jsonify({
+            'success': True,
+            'route': {
+                'source': best_route['source'],
+                'polyline': best_route['polyline'],
+                'duration_seconds': best_route['duration'],
+                'duration_minutes': round(best_route['duration'] / 60, 1),
+                'waypoints': addresses,
+                'total_stops': len(addresses) + 2  # start + waypoints + end
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error planning route: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route("/api/save-route", methods=['POST'])
+@login_required
+@role_required('driver')
+def api_save_route():
+    """Save planned route to database"""
+    try:
+        data = request.get_json()
+        route_data = data.get('route_data')
+        selected_students = data.get('selected_students', [])
+        
+        if not route_data:
+            return jsonify({'success': False, 'error': 'No route data provided'})
+        
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+        
+        # Create routes table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS planned_routes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                driver_id TEXT NOT NULL,
+                route_name TEXT,
+                polyline TEXT,
+                waypoints TEXT,
+                duration_minutes REAL,
+                student_ids TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active BOOLEAN DEFAULT 1
+            )
+        ''')
+        
+        # Save the route
+        cursor.execute('''
+            INSERT INTO planned_routes 
+            (driver_id, route_name, polyline, waypoints, duration_minutes, student_ids)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            session['user_id'],
+            f"Route {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            route_data.get('polyline', ''),
+            ','.join(route_data.get('waypoints', [])),
+            route_data.get('duration_minutes', 0),
+            ','.join(selected_students)
+        ))
+        
+        route_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Route saved successfully',
+            'route_id': route_id
+        })
+        
+    except Exception as e:
+        print(f"Error saving route: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route("/api/get-saved-routes")
+@login_required
+@role_required('driver')
+def api_get_saved_routes():
+    """Get all saved routes for current driver"""
+    try:
+        conn = sqlite3.connect(USERS_DB)
+        cursor = conn.cursor()
+        
+        # Check if table exists
+        cursor.execute('''
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name='planned_routes'
+        ''')
+        
+        if not cursor.fetchone():
+            return jsonify({'success': True, 'routes': []})
+        
+        cursor.execute('''
+            SELECT id, route_name, waypoints, duration_minutes, student_ids, created_at
+            FROM planned_routes
+            WHERE driver_id = ? AND is_active = 1
+            ORDER BY created_at DESC
+        ''', (session['user_id'],))
+        
+        routes = []
+        for route in cursor.fetchall():
+            routes.append({
+                'id': route[0],
+                'name': route[1],
+                'waypoints': route[2].split(',') if route[2] else [],
+                'duration_minutes': route[3],
+                'student_count': len(route[4].split(',')) if route[4] else 0,
+                'created_at': route[5]
+            })
+        
+        conn.close()
+        return jsonify({'success': True, 'routes': routes})
+        
+    except Exception as e:
+        print(f"Error getting saved routes: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+
+
+
+
+
+
+
 
 # Add this new route to your main.py file
 
