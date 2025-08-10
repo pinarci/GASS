@@ -97,12 +97,17 @@ Web-based Dashboard for live monitoring and rule management.
 Integration with Cloud Services (AWS, GCP, Azure).
 
 👨‍💻 Contributors
+
 Ege İzmir
+
 Mustafa Pınarcı
+
 Egemen Doruk Serdar
+
 Mustafa Boğaç Morkoyun
 
 
 📜 License
 This project is licensed under the MIT License — free to use, modify, and distribute.
+
 
